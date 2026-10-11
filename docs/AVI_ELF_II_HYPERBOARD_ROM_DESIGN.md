@@ -355,6 +355,71 @@ Relevant upstream/source locations currently include:
 
 Do not import binaries or source solely because they are technically useful; preserve provenance and licensing information.
 
+## Historical Netronics software: NCE and NCA
+
+The 1979 *Netronics Cassette Text Editor* user manual (23-page scan held in
+the restoration project's sources) describes two distinct original ELF II
+programs:
+
+- **NCE** (Netronics Cassette Editor): interactive terminal editor for text
+  and COSMAC assembly source; search, substitute, insert, delete, save/get,
+  composite/nested commands and cassette input/output.
+- **NCA** (Netronics Cassette Assembler): converts source files to machine
+  code, originally using the cassette workflow.
+
+### Documented hardware and memory constraints
+
+- The editor is loaded at **$0000-$0FFF** (4 KiB) and ordinarily needs at
+  least another 4 KiB for text/work space. The manual recommends 8 KiB RAM.
+- Original I/O supports a serial terminal with first-character baud timing,
+  rather than an initialized CDP1854 hardware UART.
+- Original file I/O expects cassette audio and a *two-recorder* tape-control
+  interface. The Hyperboard provides cassette signals but the two-deck
+  transport-control hardware has **not** been established.
+- The editor's **U** command returns to the original ELF II monitor and must
+  be redirected to the custom ROM's monitor/warm-start path.
+
+### Proposed integration
+
+Treat NCE and NCA as **optional, historically authentic ROM-stored RAM
+payloads**, analogous to the Netronics Tiny BASIC loader. Do not assume
+that the original 4 KiB NCE executable can execute directly from high ROM:
+locate a genuine cassette capture or machine-code listing first, establish
+its precise byte length, load and entry points, writable locations, and
+dependencies. If available, store a documented payload in high ROM and
+copy to low RAM on `NCE` (and later `NCA`) monitor commands.
+
+Patch or adapt the serial interface to use the CDP1854 BIOS console.
+Design cassette compatibility independently from the ROM image: first test
+editor buffer operations over serial, then tape operations. Support a
+non-destructive path back to the resident monitor. Maintain license and
+provenance records before incorporating third-party binaries.
+
+**Important:** the manual is *documentation*, not the executable or source.
+No genuine NCE/NCA binary has been recovered or verified yet. The known
+Emma 02 `data/NetronicsElfII/` archive contains Giant Board monitor and
+other ROM images, but does not establish the availability of NCE/NCA. Avoid
+treating its `vt100.bin` or BASIC III ROM as an editor image.
+
+### ROM-capacity trade-off
+
+The stock 32 KiB alternate ROM map is fully allocated. Removing 5 KiB Forth
+can make room for Tiny BASIC (~3504 bytes) **or** a ~4 KiB NCE payload, not
+both without additional space recovery. SEDIT's 768 bytes alone does not
+solve that shortfall. Consider separately selectable build configurations
+or further audits of Elf2K-only components before promising both in one
+ROM. Do not alter stock `config.Elf2K-alternate`.
+
+### Acceptance milestones
+
+1. Locate and authenticate the original editor and assembler programs.
+2. Confirm exact payload sizes, entry points, and ROM/RAM relocation behavior.
+3. Launch original editor from monitor in RAM with CDP1854 terminal I/O.
+4. Exercise insert/type/search/substitute and return to monitor.
+5. Verify cassette transfer or explicitly document any unsupported
+   original dual-transport commands.
+6. Add original assembler only after independent image/provenance validation.
+
 ## 13. Open questions
 
 - Which Elf2K monitor/BIOS routines are truly hardware-neutral, and which assume Elf2K-specific peripherals?
