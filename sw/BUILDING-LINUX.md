@@ -41,8 +41,7 @@ by a local include path.
 - SpareTimeGizmos/tools `bfb20d0af74adecd5363377a474c60460dacf860`
 - rileym65/RcAsm `3fb25223547274da0c9d9e3e5f35cb5f58e0f343`
 - rileym65/Asm-02 `a99bbca5e2ae425adff216f7df72ffbe0ed68faf`
-- rileym65/Elf-BIOS `5420f7733711f657dbc5909add0ba3b24d5ea935`
-- wd5gnr/1802black `1d5f8b2bb4295d83a6ac35db06c43c7eb009ec34`
+- wd5gnr/1802black `1d5f8b2bb4295d83a6ac35db06c43c7eb009ec34` (STG-integrated BIOS and application sources)
 - rileym65/Elf-RcForth `d9de6b36190d811b7d962d7c495b31c5ff23e2d5`
 - rileym65/Elf-EDTASM `2fe52285245c206769ebe4e3d4707a3cced328c8`
 - rileym65/Elf-Visual02 `61f7c978d01509086195084155fbe3f5fc014fc9`

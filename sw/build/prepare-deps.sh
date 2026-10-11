@@ -21,7 +21,6 @@ clone_at() {
 clone_at stg-tools https://github.com/SpareTimeGizmos/tools.git bfb20d0af74adecd5363377a474c60460dacf860
 clone_at rcasm https://github.com/rileym65/RcAsm.git 3fb25223547274da0c9d9e3e5f35cb5f58e0f343
 clone_at asm02 https://github.com/rileym65/Asm-02.git a99bbca5e2ae425adff216f7df72ffbe0ed68faf
-clone_at elf-bios https://github.com/rileym65/Elf-BIOS.git 5420f7733711f657dbc5909add0ba3b24d5ea935
 clone_at stgrom-archive https://github.com/wd5gnr/1802black.git 1d5f8b2bb4295d83a6ac35db06c43c7eb009ec34
 clone_at rcforth https://github.com/rileym65/Elf-RcForth.git d9de6b36190d811b7d962d7c495b31c5ff23e2d5
 clone_at edtasm https://github.com/rileym65/Elf-EDTASM.git 2fe52285245c206769ebe4e3d4707a3cced328c8

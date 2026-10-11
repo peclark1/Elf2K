@@ -17,7 +17,7 @@ cp "$SW"/boots.asm "$SW"/boots.inc "$SW"/hardware.inc "$WORK/"
 cp "$SW"/config.Elf2K-alternate "$SW"/help.Elf2K-alternate "$WORK/"
 
 # Michael Riley components omitted from the STG source distribution.
-cp "$DEPS/elf-bios"/bios.asm "$DEPS/elf-bios"/bios.inc "$WORK/"
+cp "$DEPS/stgrom-archive/bios"/bios.asm "$DEPS/stgrom-archive/bios"/bios.inc "$WORK/"
 cp "$DEPS/stgrom-archive/bios"/rcbasic.asm "$WORK/"
 cp "$DEPS/stgrom-archive/bios"/sedit.asm "$WORK/"
 cp "$DEPS/stgrom-archive/bios"/xmodem.asm "$WORK/"
