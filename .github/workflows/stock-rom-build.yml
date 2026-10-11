@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/avi-elf2-hyperboard-rom
+  pull_request:
   workflow_dispatch:
 
 jobs:
