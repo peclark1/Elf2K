@@ -56,15 +56,14 @@ MAKE_ARGS=(
 # Build it first, while bios.inc is pristine.
 make -C "$WORK" "${MAKE_ARGS[@]}" boots.hex
 
-# The Rc/Asm components include the same bios.inc, but public Rc/Asm requires
-# fixed fields for EQU definitions.  The archived STG work tree includes the
-# exact formatter used for that purpose.  Reformat only the disposable copy
-# after the TASM monitor has been built.
-awk -f "$DEPS/stgrom-archive/bios/pp.awk" "$WORK/bios.inc" >"$WORK/bios.inc.pp"
-mv "$WORK/bios.inc.pp" "$WORK/bios.inc"
+# The Rc/Asm components include the same bios.inc. Public Rc/Asm has trouble
+# with the historical label/EQU include syntax even though its preprocessor
+# handles the same constants cleanly. Convert only this disposable Rc/Asm copy
+# after TASM has consumed the original include.
+python3 "$SW/build/normalize-rcasm-include.py" "$WORK/bios.inc"
 
-# bios.inc is now newer than boots.hex.  Mark the already verified TASM output
-# newer so GNU make does not rebuild it with the Rc/Asm-formatted include.
+# bios.inc is now newer than boots.hex. Mark the already verified TASM output
+# newer so GNU make does not rebuild it with the Rc/Asm-only include form.
 touch "$WORK/boots.hex"
 
 make -C "$WORK" "${MAKE_ARGS[@]}"
