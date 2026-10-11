@@ -13,6 +13,12 @@ import pathlib
 import re
 import sys
 
+# Rc/Asm treats a trailing semicolon comment on INCLUDE as part of the
+# filename. Keep the comment on its own line to preserve source history.
+INCLUDE_WITH_COMMENT = re.compile(
+    r"^(\\s*include\\s+\\S+?)\\s+(;.*)$", re.IGNORECASE
+)
+
 LABEL_AND_CODE = re.compile(
     r"^([A-Za-z_.$?][A-Za-z0-9_.$?]*:)([ \t]+)(?=\S)(.*)$"
 )
@@ -24,6 +30,11 @@ def normalize(path: pathlib.Path) -> None:
         # Tabs are harmless in operands but expanding them avoids historical
         # Rc/Asm column/parser surprises.
         line = raw.expandtabs(8)
+        include = INCLUDE_WITH_COMMENT.match(line)
+        if include:
+            out.append(include.group(1))
+            out.append(include.group(2))
+            continue
         match = LABEL_AND_CODE.match(line)
         if match and not match.group(3).lstrip().startswith(";"):
             rest = match.group(3)
