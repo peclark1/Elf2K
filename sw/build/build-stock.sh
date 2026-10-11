@@ -39,16 +39,35 @@ sed -i -e 's|#include ../ops.inc|#include "ops.inc"|' \
        -e 's|include[[:space:]]*../bios.inc|include bios.inc|' \
        "$WORK/visual02.asm"
 
-make -C "$WORK" \
-  PLATFORM=Elf2K ALTERNATE=-alternate \
-  TASM="$DEPS/stg-tools/tasm35/tasm" \
-  TASMTABS="$DEPS/stg-tools/tasm35/tables" \
-  ASM02="$DEPS/asm02/asm02" \
-  RCASM="$DEPS/rcasm/rcasm" \
-  RCASM_DIR="$DEPS/rcasm/" \
-  ROMMERGE="$DEPS/stg-tools/rommerge/rommerge" \
-  ROMCKSUM="$DEPS/stg-tools/romcksum/romcksum" \
+MAKE_ARGS=(
+  PLATFORM=Elf2K
+  ALTERNATE=-alternate
+  TASM="$DEPS/stg-tools/tasm35/tasm"
+  TASMTABS="$DEPS/stg-tools/tasm35/tables"
+  ASM02="$DEPS/asm02/asm02"
+  RCASM="$DEPS/rcasm/rcasm"
+  RCASM_DIR="$DEPS/rcasm/"
+  ROMMERGE="$DEPS/stg-tools/rommerge/rommerge"
+  ROMCKSUM="$DEPS/stg-tools/romcksum/romcksum"
   ROMTEXT="$DEPS/stg-tools/romtext/romtext"
+)
+
+# boots.asm is assembled by TASM and needs Riley's original bios.inc syntax.
+# Build it first, while bios.inc is pristine.
+make -C "$WORK" "${MAKE_ARGS[@]}" boots.hex
+
+# The Rc/Asm components include the same bios.inc, but public Rc/Asm requires
+# fixed fields for EQU definitions.  The archived STG work tree includes the
+# exact formatter used for that purpose.  Reformat only the disposable copy
+# after the TASM monitor has been built.
+awk -f "$DEPS/stgrom-archive/bios/pp.awk" "$WORK/bios.inc" >"$WORK/bios.inc.pp"
+mv "$WORK/bios.inc.pp" "$WORK/bios.inc"
+
+# bios.inc is now newer than boots.hex.  Mark the already verified TASM output
+# newer so GNU make does not rebuild it with the Rc/Asm-formatted include.
+touch "$WORK/boots.hex"
+
+make -C "$WORK" "${MAKE_ARGS[@]}"
 
 python3 "$SW/build/verify-rom.py" "$SW/Elf2K-alternate.hex" "$WORK/Elf2K-alternate.hex"
 printf "\nBuilt ROM: %s\n" "$WORK/Elf2K-alternate.hex"
