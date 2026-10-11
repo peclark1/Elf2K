@@ -24,6 +24,14 @@ cp "$DEPS/stgrom-archive/bios"/xmodem.asm "$WORK/"
 cp "$DEPS/rcforth"/forth.asm "$WORK/"
 cp "$DEPS/edtasm"/edtasm.asm "$WORK/"
 
+# Rc/Asm uses fixed source fields; the archived STG work tree includes the
+# formatter that was used to normalize labels/opcodes from modern free-form
+# source. Apply it only to sources assembled by Rc/Asm.
+for src in bios.asm xmodem.asm sedit.asm edtasm.asm forth.asm; do
+  awk -f "$DEPS/stgrom-archive/bios/pp.awk" "$WORK/$src" >"$WORK/$src.pp"
+  mv "$WORK/$src.pp" "$WORK/$src"
+done
+
 # VISUAL/02 assumes Riley's old sibling-repository checkout layout.
 cp "$DEPS/visual02/visual02.asm" "$WORK/visual02.asm"
 cp "$DEPS/elfops/include/ops.inc" "$WORK/ops.inc"
