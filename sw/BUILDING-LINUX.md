@@ -39,7 +39,7 @@ by a local include path.
 ## Locked external revisions
 
 - SpareTimeGizmos/tools `bfb20d0af74adecd5363377a474c60460dacf860`
-- rileym65/RcAsm `3fb25223547274da0c9d9e3e5f35cb5f58e0f343`
+- wd5gnr/RcAsm `fd1ea3092da6904ae8ecf1b01f1dc6773c992ded` (2023 fork used with the STG-integrated sources)
 - rileym65/Asm-02 `a99bbca5e2ae425adff216f7df72ffbe0ed68faf`
 - wd5gnr/1802black `1d5f8b2bb4295d83a6ac35db06c43c7eb009ec34` (STG-integrated BIOS and application sources)
 - rileym65/Elf-RcForth `d9de6b36190d811b7d962d7c495b31c5ff23e2d5`
