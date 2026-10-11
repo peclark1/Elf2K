@@ -26,10 +26,15 @@ def normalize(path: pathlib.Path) -> None:
         line = raw.expandtabs(8)
         match = LABEL_AND_CODE.match(line)
         if match and not match.group(3).lstrip().startswith(";"):
-            out.append(match.group(1))
-            out.append("        " + match.group(3))
-        else:
-            out.append(line)
+            rest = match.group(3)
+            opcode = rest.lstrip().split(None, 1)[0].lower()
+            # EQU needs the label on the same physical line because Rc/Asm
+            # applies the directive to its current parsed label.
+            if opcode not in {"equ", ".equ"}:
+                out.append(match.group(1))
+                out.append("        " + rest)
+                continue
+        out.append(line)
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
