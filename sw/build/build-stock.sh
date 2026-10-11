@@ -28,7 +28,7 @@ cp "$DEPS/edtasm"/edtasm.asm "$WORK/"
 # a label and uses another symbol in the instruction. The historical STG build
 # used a locally modified assembler. Split those lines in the disposable tree;
 # this is source-layout-only and cannot change emitted addresses or bytes.
-for src in bios.asm bios.inc xmodem.asm sedit.asm edtasm.asm forth.asm; do
+for src in bios.asm xmodem.asm sedit.asm edtasm.asm forth.asm; do
   python3 "$SW/build/normalize-rcasm.py" "$WORK/$src"
 done
 
