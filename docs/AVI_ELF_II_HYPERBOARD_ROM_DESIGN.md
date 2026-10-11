@@ -12,6 +12,7 @@ The ROM should:
 
 - Boot reliably from the Hyperboard's normal 32 KiB ROM mapping at `$8000-$FFFF`.
 - Retain the useful Elf2K monitor/debugger environment and serial console support.
+- Prefer the Hyperboard CDP1854 hardware UART as the normal AVI console, while retaining the Q/EF bit-banged serial path as an optional compatibility/fallback mode.
 - Keep the ROM build reproducible from source.
 - Prefer software that is useful on the actual AVI ELF II / Hyperboard hardware.
 - Add historically appropriate ELF II software where practical.
@@ -31,18 +32,79 @@ The ROM should:
 - The current Elf2K alternate image boots and runs from `$8000`.
 - The current ROM image passes the Elf2K full-ROM checksum repeatedly with checksum `F0CB` when programmed into a known-good EEPROM.
 - Hyperboard SRAM has passed sustained checksum testing.
-- Hyperboard serial console operation is working.
+- Hyperboard serial console operation is working. The currently proven Elf2K console path is the Q/EF bit-banged interface at 2400 baud.
+- The Hyperboard provides a CDP1854 hardware UART (COM2) and CDP1863 programmable baud-rate generator.
+- With the current bit-banged console, enabling the CDP1861/PIXIE causes serial corruption; the working hypothesis is that PIXIE DMA steals enough CPU timing to disturb software-generated serial bit timing.
 - The Hyperboard provides cassette input/output circuitry (`CASS_IN` and `CASS_OUT`).
 - CDP1861 PIXIE support is physically available on the AVI ELF II, although video debugging is still in progress.
 
 ### To verify before finalizing the ROM
 
 - Exact cassette input/output polarity and EF/Q assignments used by the Hyperboard.
-- Which Elf2K BIOS routines map cleanly to the CDP1854 UART implementation on the Hyperboard.
+- Exact Hyperboard CDP1854 register/port selects, status wiring, and CDP1863 baud-rate programming as strapped on the assembled board. The classic CDP1854/CDP1863 I/O convention is a useful lead but must be verified before it is encoded in firmware.
 - Whether any current Elf2K startup tests or device initialization touch hardware that is absent on the AVI system.
 - Whether the final ROM should assume a CDP1861 is always fitted or make PIXIE support optional.
 
-## 3. Current Elf2K alternate ROM layout
+## 3. AVI serial-console architecture
+
+The AVI-specific ROM should use the Hyperboard's **CDP1854 hardware UART** as
+its preferred console rather than depending on cycle-counted Q/EF serial.
+
+This is an architectural choice, not a change to the stock Elf2K
+configuration. The stock build must remain reproducible and unchanged.
+
+### Rationale
+
+The current bit-banged console works reliably by itself, but CDP1861 DMA and
+interrupt activity can stretch the software serial timing enough to corrupt
+characters. A CDP1854 shifts the serial bits using hardware clocks, so PIXIE
+DMA no longer directly changes individual bit widths. It also makes baud rates
+above the presently used 2400 baud practical.
+
+The CDP1854 has no deep receive FIFO, so this does **not** guarantee that every
+high baud rate will coexist with heavy PIXIE activity. The CPU still has to
+service received characters before overrun. The initial design should
+therefore use polling and conservative rates, then measure the real machine.
+
+### Integration strategy
+
+Do not rewrite the monitor's console-facing code. The Elf2K firmware already
+has a useful abstraction in which monitor and applications call BIOS terminal
+and input services while the low-level implementation selects a console
+backend. Preserve that structure and add an AVI-specific CDP1854/CDP1863
+backend underneath it.
+
+The existing Elf2K "hardware UART" code targets an 8250/16450/16550-style
+register-select/data interface. The CDP1854 is a different device and should
+not be made to masquerade as an 8250. The AVI configuration should provide
+its own low-level initialize, status, receive, transmit, and baud-rate
+routines.
+
+The first AVI implementation should:
+
+- initialize the CDP1854 in its CDP1800-series interface mode;
+- program the Hyperboard CDP1863/divider path for the requested baud rate;
+- use the hardware UART for the normal console;
+- retain the Q/EF bit-banged driver as an explicit fallback/diagnostic option;
+- begin with 9600 baud, 8-N-1, then test 19200 and higher rates only after
+  9600 is reliable with PIXIE active;
+- avoid UART interrupts initially; polling keeps the first implementation
+  small and minimizes interaction with the CDP1861 interrupt/DMA path.
+
+The schematic and period CDP1854/CDP1863 examples suggest a compact COSMAC
+I/O mapping (commonly separate data and status/control ports plus a baud
+generator load port). The exact Hyperboard port numbers and any EF/status
+jumper selections remain a **bench-verification item** before code is written.
+
+### Required coexistence test
+
+A successful AVI console implementation is not merely "terminal output works."
+The acceptance test must run sustained transmit and receive traffic while the
+CDP1861 is enabled and continuously performing display DMA. There should be
+no character corruption at the selected default baud rate and no UART
+overrun during normal monitor use.
+
+## 4. Current Elf2K alternate ROM layout
 
 The current `sw/config.Elf2K-alternate` configuration uses the 32 KiB ROM as follows:
 
@@ -60,7 +122,7 @@ The current `sw/config.Elf2K-alternate` configuration uses the 32 KiB ROM as fol
 
 The alternate image already omits the Elf2K VT1802 video-card firmware.
 
-## 4. Component policy
+## 5. Component policy
 
 ### Likely keep
 
@@ -83,7 +145,7 @@ These should be audited before being removed:
 
 Removing Forth alone frees 5120 bytes. Removing SEDIT as well would free another 768 bytes.
 
-## 5. Netronics ELF II Tiny BASIC
+## 6. Netronics ELF II Tiny BASIC
 
 Adding the reconstructed Netronics ELF II Tiny BASIC is a primary design goal.
 
@@ -129,7 +191,7 @@ Preferred options, in order:
 
 The return path should not require rebooting the machine.
 
-## 6. Tiny BASIC cassette support
+## 7. Tiny BASIC cassette support
 
 This is especially promising because Tiny BASIC already contains user-visible `SAVE` and `LOAD` commands.
 
@@ -178,7 +240,7 @@ Reserve enough of `$F000` to provide entry stubs at `$F065` and `$F0BA` that tra
 
 This may preserve an almost-unmodified Tiny BASIC image, but it still conflicts with the current XMODEM placement and would require careful layout work.
 
-## 7. Proposed first ROM layout experiment
+## 8. Proposed first ROM layout experiment
 
 The initial implementation should minimize changes to known-good Elf2K code.
 
@@ -197,7 +259,7 @@ The 3504-byte Tiny BASIC payload fits inside the 5120 bytes freed by Forth, leav
 
 Exact addresses should not be committed until the stock build can be reproduced and the assembler's page-boundary constraints have been checked.
 
-## 8. Proposed monitor commands
+## 9. Proposed monitor commands
 
 Initial command ideas:
 
@@ -214,7 +276,7 @@ Initial command ideas:
 
 Tiny BASIC's own `SAVE` and `LOAD` commands should ultimately call the same cassette primitives used by monitor-level cassette commands.
 
-## 9. Build strategy
+## 10. Build strategy
 
 Before modifying functionality, establish a reproducible build of the stock Elf2K alternate ROM.
 
@@ -256,7 +318,7 @@ Audit each component and hardware dependency before removal. Rebuild after each 
 - Connect Tiny BASIC `SAVE` and `LOAD` to those primitives.
 - Test with both a real recorder and captured WAV/audio files if convenient.
 
-## 10. Verification plan
+## 11. Verification plan
 
 Every ROM revision should be tested in layers:
 
@@ -266,15 +328,17 @@ Every ROM revision should be tested in layers:
 4. ELF boots cleanly to the monitor.
 5. Repeated full-ROM checksum is stable.
 6. RAM test remains stable.
-7. Serial console commands work.
-8. Existing retained languages/utilities launch and return correctly.
-9. `TBASIC` loads correctly into RAM.
-10. Tiny BASIC can enter, list, and run a small program.
-11. Tiny BASIC can return to the Elf2K monitor.
-12. Cassette save/load round trip succeeds once implemented.
-13. PIXIE behavior is retested after the separate hardware video problem is resolved.
+7. CDP1854 hardware-UART console works at 9600 baud with PIXIE disabled.
+8. Sustained CDP1854 transmit/receive remains clean with PIXIE display DMA active.
+9. Bit-banged serial remains available as a fallback/diagnostic path.
+10. Existing retained languages/utilities launch and return correctly.
+11. `TBASIC` loads correctly into RAM.
+12. Tiny BASIC can enter, list, and run a small program.
+13. Tiny BASIC can return to the Elf2K monitor.
+14. Cassette save/load round trip succeeds once implemented.
+15. PIXIE behavior is retested after the separate hardware video problem is resolved.
 
-## 11. Source/provenance notes
+## 12. Source/provenance notes
 
 Before importing third-party source into this repository, confirm copyright and redistribution terms for each component.
 
@@ -291,9 +355,11 @@ Relevant upstream/source locations currently include:
 
 Do not import binaries or source solely because they are technically useful; preserve provenance and licensing information.
 
-## 12. Open questions
+## 13. Open questions
 
 - Which Elf2K monitor/BIOS routines are truly hardware-neutral, and which assume Elf2K-specific peripherals?
+- What are the exact CDP1854 data/status/control port selects and CDP1863 baud programming values on the assembled Hyperboard?
+- What is the highest CDP1854 baud rate that remains loss-free during continuous CDP1861 display DMA?
 - Is SEDIT completely unusable on the Hyperboard, or could it be repurposed for another block device later?
 - Should Forth be omitted permanently, or made an alternate ROM build option?
 - Can XMODEM remain at `$F000` while Tiny BASIC cassette calls are redirected elsewhere?
@@ -303,7 +369,7 @@ Do not import binaries or source solely because they are technically useful; pre
 - Should the monitor expose a general-purpose application/payload loader abstraction so other RAM-resident ELF software can be added later without writing a new command each time?
 - Can the build be modernized enough to run reproducibly on current Linux while still generating an image identical to the historical/upstream build?
 
-## 13. Near-term next steps
+## 14. Near-term next steps
 
 1. Get the unmodified upstream `Elf2K-alternate.hex` building from this fork.
 2. Record the toolchain and missing external source dependencies.
