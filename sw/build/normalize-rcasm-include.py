@@ -15,7 +15,7 @@ import re
 import sys
 
 EQU = re.compile(
-    r"^\\s*([A-Za-z_.$?][A-Za-z0-9_.$?]*):\\s+equ\\s+(.+?)(\\s*;.*)?$",
+    r"^\s*([A-Za-z_.$?][A-Za-z0-9_.$?]*):\s+equ\s+(.+?)(\s*;.*)?$",
     re.IGNORECASE,
 )
 
@@ -32,7 +32,7 @@ def normalize(path: pathlib.Path) -> None:
                 out.append(comment.lstrip())
         else:
             out.append(raw.expandtabs(8))
-    path.write_text("\\n".join(out) + "\\n", encoding="utf-8")
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
 def main() -> int:
