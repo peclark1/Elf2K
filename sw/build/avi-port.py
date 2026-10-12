@@ -29,6 +29,7 @@ include config.inc
 #define STGROM
 #ifdef AVIELF2
 #define SERHDX
+#define UART                    ; CDP1854 mode 1, NOT 8250
 #define SERP            b3
 #define SERN            bn3
 #define SERSEQ          seq
@@ -42,6 +43,13 @@ include config.inc
 """ + original.split("#define STGROM", 1)[1].rsplit("#endif", 1)[0] + """#endif
 #endif"""
     s = s[:start] + replacement + s[end:]
+    # Entire 8250 driver is replaced with the explicitly separate RCA1854
+    # polling driver. Keep the ABI at F800/FF00 unchanged.
+    legacy_start = s.index("#ifdef UART\n; ****************************************")
+    legacy_end = s.index('#endif  ;; "#ifdef UART"', legacy_start)
+    legacy_end = s.index("\n", legacy_end) + 1
+    native = (Path(__file__).resolve().parent.parent / "avi-cdp1854.asm").read_text()
+    s = s[:legacy_start] + "#ifdef UART\n" + native + "\n#endif\n" + s[legacy_end:]
     # Keep the public BIOS vector table but disconnect storage calls from
     # absent IDE peripherals. The generic BIOS return-error routine is used.
     for label, target in (
@@ -109,6 +117,37 @@ def port_boots(path: Path) -> None:
                          "\tLBZ\tNVRL2\t\t; wait for it to set")
     s = substitute_exact(s, "\tBNZ\tNVRL3\t\t; wait for it to clear",
                          "\tLBNZ\tNVRL3\t\t; wait for it to clear")
+    # Opt-in hardware UART. BOOTS always defaults to bit-banged serial
+    # on reset so incorrect jumpers cannot make the system unbootable.
+    cmd = '\\tCMD(4, "CONTINUE", CONTINUE)'
+    s = substitute_exact(s, cmd, cmd + '\n#ifdef AVIELF2\n'
+        + '\\tCMD(3, "UART", AVIUART)\n#endif')
+    end_marker = '; The table always ends with a zero byte...'
+    if s.count(end_marker) != 1:
+        raise RuntimeError("missing primary command-table endpoint")
+    uart_handler = '''
+#ifdef AVIELF2
+; UART switches to CDP1854/COM2 only after a successful software boot.
+; Hardware must be strapped for OUT 5 divider, OUT/IN 2 data, OUT/IN 3 status.
+AVIUART: CALL(ISEOL)
+        LBNF    CMDERR
+        INLMES("UART 9600 8N1")
+        CALL(TCRLF)
+        LDI     $34
+        CALL(F_USETBD)
+        LBDF    CMDERR
+        RLDI(DP,BAUD1)
+        LDI     $01
+        PHI     BAUD
+        STR     DP
+        INC     DP
+        LDI     $34
+        STR     DP
+        LBR     MAIN
+#endif
+
+'''
+    s = substitute_exact(s, end_marker, uart_handler + end_marker)
     # Disable commands that knowingly touch Elf2K IDE, RTC or NVR
     # hardware. INPUT/OUTPUT remain available to test COM2 explicitly.
     forbidden = {"BOOT", "NVR", "IDE", "DATE", "RESTART", "CPU", "TERMINAL"}
