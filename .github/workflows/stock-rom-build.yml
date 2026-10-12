@@ -16,26 +16,30 @@ jobs:
       - name: Install build prerequisites
         run: sudo apt-get update && sudo apt-get install -y build-essential git python3
       - name: Validate stock build shell syntax
-        run: bash -n sw/build/build-stock.sh sw/build/prepare-deps.sh
+        run: bash -n sw/build/build-stock.sh sw/build/prepare-deps.sh sw/build/reproduce-stock.sh
       - name: Regression tests for source normalizers
         run: python3 -m unittest discover -s sw/build/tests -v
       - name: Record untouched reference identity
         run: |
           git hash-object sw/Elf2K-alternate.hex
           sha256sum sw/Elf2K-alternate.hex
-      - name: Build and verify stock Elf2K-alternate ROM
-        run: ./sw/build/build-stock.sh
+      - name: Two clean stock ROM builds and strict byte comparison
+        run: bash sw/build/reproduce-stock.sh
       - name: Upload generated ROM and listings
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Elf2K-alternate-build
           path: |
-            .build/stock-rom/work/*.hex
-            .build/stock-rom/work/*.lst
-            .build/stock-rom/work/config.inc
-            .build/stock-rom/work/*.asm
-            .build/stock-rom/work/*.inc
+            .build/stock-rom-repro/first/work/*.hex
+            .build/stock-rom-repro/first/work/*.lst
+            .build/stock-rom-repro/first/work/config.inc
+            .build/stock-rom-repro/second/work/*.hex
+            .build/stock-rom-repro/second/work/*.lst
+            .build/stock-rom-repro/second/work/config.inc
+            .build/stock-rom-repro/*.txt
+            .build/stock-rom-repro/first/work/visual02.asm
+            .build/stock-rom-repro/first/work/bios.inc
             .build/deps/asm02/asm.c
             .build/deps/asm02/header.h
             .build/deps/asm02/Makefile
