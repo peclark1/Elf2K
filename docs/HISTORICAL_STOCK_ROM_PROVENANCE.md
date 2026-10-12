@@ -66,3 +66,54 @@ bash sw/build/reproduce-stock.sh
 ```
 
 The current `reproduce-stock.sh` exits nonzero **by design**, because neither generated ROM matches the original reference. This document records the diagnosed cause and owner decision boundary; it does not relax that gate.
+
+
+## Continuation of component-isolated provenance experiments — 2026-10-12
+
+The original reference Git blob and checksum lock in `reproduce-stock.sh` still protect the tracked ROM. The production source pins and `config.Elf2K-alternate` remain unchanged. All results below come from independently assembled **disposable component trials** under `.build/stock-compat-probes/`; **none was substituted into the stock build**.
+
+### EDTASM: archive lineage helps, but is not equivalent
+
+- Pinned public EDTASM: **2,677** difference bytes, first `$A40A`.
+- Same source, only `STGROM DATA` adjusted `$4000 → $1000`: **2,663** differences, first `$A446`.
+- Separate `wd5gnr/1802black@1d5f8b2` archived `bios/edtasm.asm`, compiled with RcAsm using the untouched generated stock config: **2,357** differences, first `$A446`. Reference populated bytes 3,121; archive trial 3,126.
+
+The archive is closer by 320 byte positions, but still has extensive code/address differences. Merely selecting an archive commit would not satisfy byte-identical acceptance.
+
+### Visual/02: source versions are not interchangeable
+
+- Current prepared Asm/02 source: **1,563** differences. Correcting one reference-backed `ntraps` initialization byte (`STR R7` instead of `PLO R7`) in a disposable copy: **1,562** differences, first `$BA10`.
+- The archival `bios/visual02.asm` built through its historical RcAsm path: **2,919** differences, first `$B105`, substantially worse.
+
+The remaining 7-byte target-address displacement remains unexplained. Neither the archived source nor the experimental single-byte correction is an accepted reference reproduction.
+
+### rc/Forth: version provenance requires a source/tool choice
+
+- Untouched reference contains `Rc/Forth 0.3`; current pinned public source builds `Rc/Forth 0.1` (**4,537** differences).
+- The old archive's `bios/Makefile` specifies **Asm/02** for Forth, not the RcAsm used for stock Forth today. Standalone trials of `bios/forth0.asm` and `bios/forth1.asm` were tested using the pinned public Asm/02 with `ops.inc` and generated-config constants resolved in disposable copies.
+- Archived `forth0.asm` (0.3) assembles but differs from the reference by **4,883** bytes (first `$DC0A`). Its compiled `endrom` is approximately `$F487`, beyond the selected Forth span `$DC00–$EFFF`, so it **cannot be installed as a stock-sized drop-in**.
+- Archived `forth1.asm` remains unassembled with unresolved `disp` symbol references; resolving that would require investigating further historical dependencies/definitions. It must not be presumed to match.
+
+This is direct evidence of a historical **software version/source integration** mismatch. A deliberate selection of an authoritative 0.3 source/build environment, or reconstruction of the original, is required before a byte-identical result can be claimed.
+
+### BIOS: bounded branch-width tests show progress and a limit
+
+The original BIOS has short 1802 branch encodings where the current public source contains long ones. All trials keep the stock BIOS source untouched, change one instruction only in a disposable copy, assemble it, and compare the same fixed BIOS byte range against the original.
+
+| Controlled sequence | BIOS mismatches | First difference |
+|---|---:|---|
+| Canonical reproducible stock build | 1,664 | `$F30B` |
+| Two `LBNZ no_uart` → `BNZ no_uart` | 1,576 | `$F331` |
+| Then `LBR abdlp1` → `BR abdlp1` | 1,269 | `$F493` |
+| Then `LBDF rtc_go` → `BDF rtc_go` | **1,201** | `$F4A7` |
+| Next diagnostic `LBNZ rtc_notset` → `BNZ rtc_notset` | 1,234 (worse) | Not accepted in the branch-encoding series |
+
+Although the reference opcode at `$F4A7` looks like the short variant, the next one-at-a-time trial **increased** total differences. The guarded test therefore records the rejected trial and retains the previous better-matching disposable candidate. This underscores why matching an isolated first opcode is not proof of historical assembler equivalence.
+
+The latest source-comparison CI evidence is [run 38276891259](https://github.com/peclark1/Elf2K/actions/runs/38276891259); its red result is **expected** because the untouched official 10,441-byte reference mismatch is still strictly rejected. The archived-source/Forth diagnostics are also present in [run 38276602080](https://github.com/peclark1/Elf2K/actions/runs/38276602080).
+
+### Status and decision boundary
+
+No candidate component is byte-identical. The two canonical clean builds still match each other; the canonical build's reference difference count remains **10,441**. Trial numbers are **not** additive reductions to the canonical ROM and must not be described as a completed stock repair.
+
+Further exact matching has reached the decision boundary in the assignment: a historically authoritative 0.3 Forth source/toolchain must be found/selected or reconstructed, and any source instruction/memory-layout differences in EDTASM, Visual/02 and BIOS must be reviewed as potentially semantic rather than silently adopted. Until then the stock reference, original configuration, source pins, component inventory and fail-closed acceptance gate stay frozen. **Do not merge draft PR #2 or program an EEPROM from the unmatched candidate.**
