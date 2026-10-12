@@ -49,6 +49,11 @@ MAKE_ARGS=(
 # Build it first, while bios.inc is pristine.
 make -C "$WORK" "${MAKE_ARGS[@]}" boots.hex
 
+# Convert the historical label/EQU bios.inc into preprocessor defines only
+# in the disposable tree. TASM has already assembled boots.hex from its original.
+# Both public Rc/Asm and Asm/02 need this normalized include.
+python3 "$SW/build/normalize-rcasm-include.py" "$WORK/bios.inc"
+
 # config.inc now exists: expand only its constants in the Asm/02 copy.
 # VISUAL/02 assumes Riley's old sibling-repository checkout layout
 # and mixes RcAsm-style INCLUDE with Asm/02's #include form.
@@ -63,12 +68,6 @@ grep -qF '#include ops.inc' "$WORK/visual02.asm"
 grep -qF '#include bios.inc' "$WORK/visual02.asm"
 grep -qF '#include config.inc' "$WORK/visual02.asm"
 test -f "$WORK/ops.inc"
-
-# The Rc/Asm components include the same bios.inc. Public Rc/Asm has trouble
-# with the historical label/EQU include syntax even though its preprocessor
-# handles the same constants cleanly. Convert only this disposable Rc/Asm copy
-# after TASM has consumed the original include.
-python3 "$SW/build/normalize-rcasm-include.py" "$WORK/bios.inc"
 
 # bios.inc is now newer than boots.hex. Mark the already verified TASM output
 # newer so GNU make does not rebuild it with the Rc/Asm-only include form.
