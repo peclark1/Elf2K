@@ -260,12 +260,25 @@ for step in $(seq 1 20); do
     now="$(sed -n 's/.*diff_count=\([0-9][0-9]*\).*/\1/p' "$AUTO/comparison.txt" | head -n 1)"
     if [[ -z "$now" ]] || ((now >= prev)); then
         echo "Step $step did not improve ($prev -> $now); preserving prior trial"
+        cp "$AUTO/bios.asm" "$AUTO/bios-rejected-step-$step.asm"
+        cp "$AUTO/bios.hex" "$AUTO/bios-rejected-step-$step.hex"
+        cp "$AUTO/bios.lst" "$AUTO/bios-rejected-step-$step.lst"
+        cp "$AUTO/comparison.txt" "$AUTO/comparison-rejected-step-$step.txt"
         cp "$AUTO/bios-prev.asm" "$AUTO/bios.asm"
+        if ((step > 1)); then
+            cp "$AUTO/bios-step-$((step-1)).hex" "$AUTO/bios.hex"
+            cp "$AUTO/bios-step-$((step-1)).lst" "$AUTO/bios.lst"
+        else
+            cp "$OUT/bios-three-short-branches/bios.hex" "$AUTO/bios.hex"
+            cp "$OUT/bios-three-short-branches/bios.lst" "$AUTO/bios.lst"
+        fi
+        python3 "$ROOT/sw/build/compare-component.py" "$REF" "$AUTO/bios.hex" F300 10000 >"$AUTO/comparison.txt" || true
         break
     fi
     echo "step $step: $prev -> $now differing BIOS bytes"
     cp "$AUTO/bios.asm" "$AUTO/bios-step-$step.asm"
     cp "$AUTO/bios.hex" "$AUTO/bios-step-$step.hex"
+    cp "$AUTO/bios.lst" "$AUTO/bios-step-$step.lst"
     prev="$now"
     if ((now == 0)); then echo "BIOS reference reached by trial"; break; fi
 done
