@@ -88,8 +88,6 @@ def port_boots(path: Path) -> None:
         LBR     TTYAUT      ; Q/EF3 autobaud (UART not yet enabled)
 #endif
 """)
-    s = substitute_exact(s, "TTYAU1:\tRLDI(DP,BAUD1)\t; (F_SETBD trashes DP!)",
-                         "TTYAU1:\tRLDI(DP,BAUD1)\t; (F_SETBD trashes DP!)")
     anchor = "\tSTR\tDP\t\t; ...\n\n;   And lastly, if there is a NVR/CMOS"
     s = substitute_exact(s, anchor, """\tSTR\tDP\t; ...
 #ifdef AVIELF2
