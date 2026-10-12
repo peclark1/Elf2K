@@ -135,6 +135,7 @@ archive_forth_asm02() {
     rm -rf "$trial"
     mkdir -p "$trial"
     cp "$WORK/config.inc" "$WORK/bios.inc" "$trial/"
+    cp "$DEPS/elfops/include/ops.inc" "$trial/"
     cp "$ARCHIVE/$source.asm" "$trial/forth.asm"
     # Asm/02 requires preprocessor-form includes. Only two active
     # STGROM include directives are converted; no target addresses changed.
@@ -149,6 +150,18 @@ for name in ("config.inc", "bios.inc"):
                    r"\1#include " + name + r"\2", s)
     if n != 1:
         raise SystemExit(f"expected exactly one {name} include, got {n}")
+# Public Asm/02 does not recursively expand CODE=FORTH: resolve the
+# historical CODE symbolic alias from the unchanged stock generated config.
+config = (p.parent / "config.inc").read_text(encoding="utf-8")
+address = re.search(r"(?im)^#define[ \\t]+FORTH[ \\t]+(\\S+)", config)
+if not address:
+    raise SystemExit("stock FORTH origin not found")
+s, n = re.subn(r"(?im)^#define[ \\t]+CODE[ \\t]+FORTH(.*)$",
+               "#define CODE " + address.group(1), s, count=1)
+if n != 1:
+    raise SystemExit(f"expected one STGROM CODE alias, got {n}")
+# Original archive's Asm/02 command expects ops.inc pseudo-instructions.
+s = "#include ops.inc\\n" + s
 p.write_text(s, encoding="utf-8")
 PY
     if ! (cd "$trial" && "$DEPS/asm02/asm02" -i -L -s -DELF2K -DSTGROM forth.asm >forth.lst 2>&1) || [[ ! -s "$trial/forth.hex" ]]; then
@@ -167,3 +180,33 @@ PY
 archive_forth_asm02 forth0
 archive_forth_asm02 forth1
 echo "Forth ASM/02 trials complete; reference and stock configuration unchanged."
+
+
+# Third BIOS encoding hypothesis: at original $F357 the reference uses
+# short BR abdlp1, while the pinned source emits LBR abdlp1. Keep this
+# hypothesis separate from the canonical BIOS and the previous 2-BNZ test.
+echo "======= REFERENCE-BACKED TRIAL: bios-three-short-branches ======="
+TRIAL="$OUT/bios-three-short-branches"
+rm -rf "$TRIAL"
+mkdir -p "$TRIAL"
+cp "$OUT/bios-short-no-uart/bios.asm" "$WORK/config.inc" "$WORK/bios.inc" "$TRIAL/"
+python3 - "$TRIAL/bios.asm" <<'PY'
+from pathlib import Path
+import re
+import sys
+p=Path(sys.argv[1])
+s=p.read_text(encoding="utf-8")
+s,n=re.subn(r"(?im)^([ \\t]*)lbr([ \\t]+abdlp1\\b)",r"\\1br\\2",s)
+if n!=1: raise SystemExit(f"expected 1 LBR abdlp1: found {n}")
+p.write_text(s,encoding="utf-8")
+PY
+if (cd "$TRIAL" && "$DEPS/rcasm/rcasm" -v -h -l -x -d1802 -DELF2K -DSTGROM bios.asm >bios.lst 2>&1) && [[ -s "$TRIAL/bios.hex" ]]; then
+    if python3 "$ROOT/sw/build/compare-component.py" "$REF" "$TRIAL/bios.hex" F300 10000 >"$TRIAL/comparison.txt" 2>&1; then
+        echo "BIOS THREE-BRANCH EXACT MATCH"
+    else
+        echo "BIOS THREE-BRANCH DIFFERENCES REMAIN"
+    fi
+    sed -n '1,9p' "$TRIAL/comparison.txt"
+else
+    echo "BIOS THREE-BRANCH PROBE DID NOT ASSEMBLE"
+fi
