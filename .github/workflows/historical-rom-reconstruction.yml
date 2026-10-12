@@ -25,7 +25,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential git python3
       - name: Validate syntax and established regressions
         run: |
-          bash -n sw/build/build-stock.sh sw/build/reproduce-stock.sh sw/build/probe-reconstruction-extensions.sh
+          bash -n sw/build/build-stock.sh sw/build/reproduce-stock.sh sw/build/probe-reconstruction-extensions.sh sw/build/probe-bios-semantic-hypothesis.sh
           PYTHONPYCACHEPREFIX=.build/pycache python3 -m py_compile sw/build/audit-historical-reconstruction.py
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s sw/build/tests -v
       - name: Preserve strict reference mismatch, reproduce two independent builds
@@ -55,7 +55,7 @@ jobs:
         run: |
           bash sw/build/probe-reconstruction-extensions.sh > .build/historical-reconstruction/new-trials.log 2>&1
           cat .build/historical-reconstruction/new-trials.log
-      - name: Reconfirm untouched reference and pinned configuration after trials
+      - name: Test BIOS semantic-source hypothesis without changing source pins\n        run: |\n          bash sw/build/probe-bios-semantic-hypothesis.sh > .build/historical-reconstruction/bios-semantic-trial.log 2>&1\n          cat .build/historical-reconstruction/bios-semantic-trial.log\n      - name: Reconfirm untouched reference and pinned configuration after trials
         run: |
           test "$(git hash-object sw/Elf2K-alternate.hex)" = e1a14af17671dae2b051b53a7ae186d639e7f5b9
           git status --short
