@@ -12,7 +12,6 @@ PROGRAM CONTROL
 LANGUAGES / DEBUG (PENDING TEST)
     BAS[ic] [NEW|OLD]     -- rc/BASIC Level 2
     ASM [NEW|OLD]        -- editor/assembler
-    VI[sual]             -- Visual/02
 
 MEMORY / I-O
     E[xamine] addr [end]  -- inspect memory
@@ -26,7 +25,7 @@ OTHER
     SH[ow] EF             -- read EF inputs
     TE[st] RAM           -- memory test
 
-SEDIT, FORTH, VT1802 omitted; space reserved.
+SEDIT, VISUAL/02, FORTH, VT1802 omitted; space reserved.
 TBASIC, CDP1854 console and cassette not yet implemented.
 Stock-only commands may still exist; DO NOT use unported
 disk, RTC/NVR or 8250 UART paths on AVI hardware.
