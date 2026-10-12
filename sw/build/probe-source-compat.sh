@@ -124,3 +124,46 @@ archive_trial forth0 forth DC00 F000 forth0
 archive_trial forth1 forth DC00 F000 forth1
 archive_trial bios bios F300 10000 bios
 echo "Archived component trials complete; production pins and reference unchanged."
+
+
+# ARCHIVE ASM/02 FORTH: the archive Makefile explicitly uses ASM02,
+# not RcAsm, for its newer rc/Forth assembly. Re-check both 0.3 candidates
+# with that original assembler family and no changes to their byte semantics.
+archive_forth_asm02() {
+    local source="$1" trial="$OUT/archive-$1-asm02"
+    echo "======= ARCHIVE ASM/02 FORTH TRIAL: $source ======="
+    rm -rf "$trial"
+    mkdir -p "$trial"
+    cp "$WORK/config.inc" "$WORK/bios.inc" "$trial/"
+    cp "$ARCHIVE/$source.asm" "$trial/forth.asm"
+    # Asm/02 requires preprocessor-form includes. Only two active
+    # STGROM include directives are converted; no target addresses changed.
+    python3 - "$trial/forth.asm" <<'PY'
+from pathlib import Path
+import re
+import sys
+p = Path(sys.argv[1])
+s = p.read_text(encoding="utf-8")
+for name in ("config.inc", "bios.inc"):
+    s, n = re.subn(r"(?im)^(\s*)include\s+" + re.escape(name) + r"(\s*)$",
+                   r"\1#include " + name + r"\2", s)
+    if n != 1:
+        raise SystemExit(f"expected exactly one {name} include, got {n}")
+p.write_text(s, encoding="utf-8")
+PY
+    if ! (cd "$trial" && "$DEPS/asm02/asm02" -i -L -s -DELF2K -DSTGROM forth.asm >forth.lst 2>&1) || [[ ! -s "$trial/forth.hex" ]]; then
+        echo "ASM/02 ASSEMBLY FAILED OR NO HEX: $source"
+        grep -in -E 'error|undefined|invalid|not found' "$trial/forth.lst" | head -n 24 || true
+        tail -n 8 "$trial/forth.lst" || true
+        return 0
+    fi
+    if python3 "$ROOT/sw/build/compare-component.py" "$REF" "$trial/forth.hex" DC00 F000 >"$trial/comparison.txt" 2>&1; then
+        echo "EXACT FORTH 0.3 MATCH: $source"
+    else
+        echo "FORTH 0.3 DIFFERENCES REMAIN: $source"
+    fi
+    sed -n '1,9p' "$trial/comparison.txt"
+}
+archive_forth_asm02 forth0
+archive_forth_asm02 forth1
+echo "Forth ASM/02 trials complete; reference and stock configuration unchanged."
