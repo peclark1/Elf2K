@@ -6,7 +6,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 DEPS="$ROOT/.build/deps"
-WORK="$ROOT/.build/stock-rom/work"
+WORK="$ROOT/.build/stock-rom-repro/first/work"
+if [[ ! -f "$WORK/config.inc" ]]; then
+  WORK="$ROOT/.build/stock-rom/work"
+fi
 OUT="$ROOT/.build/stock-source-probes"
 REF="$ROOT/sw/Elf2K-alternate.hex"
 if [[ ! -f "$WORK/config.inc" || ! -f "$WORK/bios.inc" ]]; then
@@ -21,6 +24,7 @@ probe() {
   local prefix trial result
   prefix="$(printf '%s' "$commit" | cut -c1-8)"
   trial="$OUT/$component-$prefix"
+  rm -rf "$trial"
   mkdir -p "$trial"
   cp "$WORK/config.inc" "$WORK/bios.inc" "$trial/"
   cp "$WORK/ops.inc" "$trial/" 2>/dev/null || true
