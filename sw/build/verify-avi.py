@@ -57,6 +57,16 @@ def validate(path: Path) -> None:
     for start, stop, name in ACTIVE:
         if all(b == 0xFF for b in rom[start-BASE:stop-BASE]):
             raise ValueError(f"Expected populated {name}: {start:04X}-{stop-1:04X}")
+    # Image-level smoke checks for the boot signature, dispatch table, and
+    # distinct CDP1854 mode-1 9600 8N1 initialization sequence.
+    monitor = rom[0x0000:0x1800]
+    extended_bios = rom[0x7300:0x7800]
+    if b"AVI ELF II " not in monitor:
+        raise ValueError("AVI startup banner not assembled into monitor")
+    if bytes([3]) + b"UART\x00" not in monitor:
+        raise ValueError("UART monitor command dispatch not present")
+    if bytes.fromhex("650063196399") not in extended_bios:
+        raise ValueError("CDP1863/CDP1854 control sequence missing")
     # romcksum -c32764: physical 7FFC/7FFD correction, 7FFE/7FFF
     # checksum. Sum is calculated after clearing these four bytes.
     raw_sum = sum(rom[:-4]) & 0xFFFF
