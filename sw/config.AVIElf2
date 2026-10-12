@@ -7,7 +7,7 @@
 # $9800-$A0FF             2304    AVI-specific HELP
 # $A100-$A3FF              768    reserved (SEDIT omitted)
 # $A400-$B0FF             3328    EDTASM
-# $B100-$C1FF             4352    Visual/02
+# $B100-$C1FF             4352    RESERVED (Visual/02 assembler crashes; deferred)
 # $C200-$DBFF             6656    rc/BASIC L2
 # $DC00-$EFFF             5120    reserved (Forth omitted)
 # $F000-$F2FF              768    XMODEM
@@ -30,8 +30,8 @@ HELP=09800H
 BIOS=0FF00H
 EBIOS=0F800H
 EDTASM=0A400H
-VISUAL=0B100H
+# VISUAL=0B100H  # deferred: pinned Asm-02 segfaults in CI
 BASIC=0C200H
 XMODEM=0F000H
 
-# Deliberately disabled: VIDEO, PIXIE, SEDIT, FORTH.
+# Deliberately disabled: VIDEO, PIXIE, SEDIT, FORTH, VISUAL.
