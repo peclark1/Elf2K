@@ -1,0 +1,32 @@
+# AVI ELF II / Hyperboard help, first-stage development ROM.
+# This does not guarantee hardware compatibility.
+AVI ELF II / HYPERBOARD - DEVELOPMENT ROM
+NOT YET HARDWARE-SAFE: UART, RTC/NVR, IDE, cassette unported.
+NO EEPROM PROGRAMMING until startup/BIOS port and tests.
+
+PROGRAM CONTROL
+    CALL addr              -- call program using SCRT
+    RUN [addr]             -- run with P=0
+    CONT[inue]             -- resume after break
+
+LANGUAGES / DEBUG (PENDING TEST)
+    BAS[ic] [NEW|OLD]     -- rc/BASIC Level 2
+    ASM [NEW|OLD]        -- editor/assembler
+    VI[sual]             -- Visual/02
+
+MEMORY / I-O
+    E[xamine] addr [end]  -- inspect memory
+    D[eposit] addr data.. -- write memory
+    IN[put] port          -- I/O read
+    OU[tput] port data    -- I/O write
+    :llaaaattdddd..cc     -- Intel HEX input
+
+OTHER
+    HEL[p]                -- show help
+    SH[ow] EF             -- read EF inputs
+    TE[st] RAM           -- memory test
+
+SEDIT, FORTH, VT1802 omitted; space reserved.
+TBASIC, CDP1854 console and cassette not yet implemented.
+Stock-only commands may still exist; DO NOT use unported
+disk, RTC/NVR or 8250 UART paths on AVI hardware.
