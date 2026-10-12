@@ -94,6 +94,16 @@ component replaces the canonical build component.
 
 The BIOS reference begins a `BNZ` at `F30B` (`3A 24`), whereas
 the pinned public BIOS source emits `LBNZ` (`CA F3 26`).
+The original ROM contains the ASCII release identifier **`Rc/Forth 0.3`**
+at CPU address `ECD8`; the reproducible candidate contains **`Rc/Forth 0.1`**
+at `E96B`. This directly demonstrates that the pinned public 0.1 source is
+not the original 0.3 software release; assembler options alone cannot change
+that embedded historical release label. The already pinned `wd5gnr/1802black`
+archive contains candidates `bios/forth0.asm` and `bios/forth1.asm` with
+the 0.3 label, but **neither has been adopted or proven byte-identical**.
+The archive's separate `bios/forth.hex` identifies version 0.55, which is
+not a verified original-component replacement.
+
 The Forth reference has **973 more non-FF bytes** in its ROM region than
 the pinned public revision, with instruction-stream divergence beginning
 at `DC0A`. These are evidence of meaningful source/build-environment
