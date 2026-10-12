@@ -23,11 +23,17 @@ from pathlib import Path
 import sys
 p = Path(sys.argv[1])
 s = p.read_text()
-a = "\tBZ\tCPU02\t\t; branch if it's a 1802"
-b = "\tLBZ\tCPU02\t\t; branch if it's a 1802"
-if s.count(a) != 1:
-    raise SystemExit("Expected exactly one SHOW CPU branch to patch")
-p.write_text(s.replace(a, b))
+patches = (
+    ("\tBZ\tCPU02\t\t; branch if it's a 1802",
+     "\tLBZ\tCPU02\t\t; branch if it's a 1802"),
+    ("\tBZ\tTDEC1B\t\t;  ...",
+     "\tLBZ\tTDEC1B\t\t;  ..."),
+)
+for before, after in patches:
+    if s.count(before) != 1:
+        raise SystemExit("Expected one AVI-only branch to patch: " + before)
+    s = s.replace(before, after)
+p.write_text(s)
 PY
 
 cp "$DEPS/stgrom-archive/bios"/bios.asm "$DEPS/stgrom-archive/bios"/bios.inc "$WORK/"
