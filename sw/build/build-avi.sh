@@ -14,6 +14,22 @@ mkdir -p "$WORK"
 cp "$SW/Makefile" "$WORK/"
 cp "$SW"/boots.asm "$SW"/boots.inc "$SW"/hardware.inc "$WORK/"
 cp "$SW"/config.AVIElf2 "$SW"/help.AVIElf2 "$WORK/"
+
+# Omitting SEDIT/Forth changes code placement. The original one-page BZ
+# in SHOW CPU can then cross a page. Fix only the disposable AVI copy:
+# use the 1802's three-byte long conditional branch; no stock file changes.
+python3 - "$WORK/boots.asm" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+a = "\tBZ\tCPU02\t\t; branch if it's a 1802"
+b = "\tLBZ\tCPU02\t\t; branch if it's a 1802"
+if s.count(a) != 1:
+    raise SystemExit("Expected exactly one SHOW CPU branch to patch")
+p.write_text(s.replace(a, b))
+PY
+
 cp "$DEPS/stgrom-archive/bios"/bios.asm "$DEPS/stgrom-archive/bios"/bios.inc "$WORK/"
 cp "$DEPS/stgrom-archive/bios"/rcbasic.asm "$WORK/"
 cp "$DEPS/stgrom-archive/bios"/xmodem.asm "$WORK/"
