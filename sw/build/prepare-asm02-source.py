@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Prepare disposable Visual/02 source for pinned public Asm/02 v1.1.
+"""Prepare disposable Visual/02 and BIOS includes for pinned public Asm/02.
 
-The pinned upstream source mixes 'include' and '#include', contains one
-known orphan #endif, and uses nested #defines. Asm/02 expands the latter only
-once, so resolve stock config.inc constants in #define RHS before assembly.
-The checked-in sources and reference ROM are never modified.
+The pinned upstream source has mixed include syntax, one known stray #endif,
+missing STGROM BIOS aliases, and an EDTASM capitalization discrepancy.
+Asm/02 substitutes macros only once and case-sensitively.  Resolve stock
+constants from generated config.inc and bios.inc, not hard-coded ROM addresses.
+Never change the tracked sources, configuration, or reference ROM.
 """
 from __future__ import annotations
 
@@ -23,31 +24,64 @@ RELOCATED = {
     "../ops.inc": "ops.inc",
     "../bios.inc": "bios.inc",
 }
+# These are the same four BIOS service aliases defined for other Visual/02
+# targets, but inadvertently absent under STGROM.
+STGROM_SERVICES = {
+    "FTYPE": "f_type",
+    "FINMSG": "f_inmsg",
+    "FMSG": "f_msg",
+    "FINPUT": "f_input",
+}
 
 
-def stock_defines(config_path: pathlib.Path) -> dict[str, str]:
-    if not config_path.is_file():
-        raise FileNotFoundError(f"stock config.inc was not generated: {config_path}")
+def read_defines(path: pathlib.Path) -> dict[str, str]:
+    if not path.is_file():
+        raise FileNotFoundError(f"required generated/build include missing: {path}")
     values: dict[str, str] = {}
-    for line in config_path.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         match = DEFINE.match(line)
         if match:
-            _prefix, name, _space, value = match.groups()
+            _, name, _, value = match.groups()
             values[name] = value.strip()
     return values
 
 
-def expand_stock_constants(value: str, definitions: dict[str, str]) -> str:
-    # Only literal constants from the generated stock config.inc are expanded.
-    # Do not interpret assembler expressions, conditionals, or source strings.
+def expand_known(value: str, definitions: dict[str, str]) -> str:
+    # Preserve assembler expressions: only resolve symbolic references to
+    # known generated stock constants. No eval(), address guesses, or retarget.
     return WORD.sub(lambda m: definitions.get(m.group(0), m.group(0)), value)
 
 
-def normalize(path: pathlib.Path) -> None:
-    definitions = stock_defines(path.with_name("config.inc"))
+def normalize_bios(path: pathlib.Path, config: dict[str, str]) -> None:
+    out: list[str] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        match = DEFINE.match(raw)
+        if match:
+            prefix, name, space, rhs = match.groups()
+            raw = f"{prefix}{name}{space}{expand_known(rhs, config)}"
+        out.append(raw)
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+def service_aliases(bios_path: pathlib.Path, config: dict[str, str]) -> dict[str, str]:
+    bios = read_defines(bios_path)
+    resolved: dict[str, str] = {}
+    for alias, target in STGROM_SERVICES.items():
+        if target not in bios:
+            raise ValueError(f"missing stock BIOS service: {target}")
+        resolved[alias] = expand_known(bios[target], config)
+        # A leftover BIOS/EBIOS name means we could emit a wrong ROM address.
+        if re.search(r"\b(?:BIOS|EBIOS)\b", resolved[alias]):
+            raise ValueError(f"unresolved BIOS service address for {alias}")
+    return resolved
+
+
+def normalize_visual(path: pathlib.Path, config: dict[str, str],
+                     aliases: dict[str, str]) -> None:
     source = path.read_text(encoding="utf-8").splitlines()
     output: list[str] = []
     depth = 0
+    in_stgrom = False
     for i, raw in enumerate(source):
         match = INCLUDE.match(raw)
         if match:
@@ -61,10 +95,17 @@ def normalize(path: pathlib.Path) -> None:
 
         definition = DEFINE.match(line)
         if definition:
-            prefix, name, space, value = definition.groups()
-            line = f"{prefix}{name}{space}{expand_stock_constants(value, definitions)}"
+            prefix, name, space, rhs = definition.groups()
+            line = f"{prefix}{name}{space}{expand_known(rhs, config)}"
+
+        # The pinned assembler expands EDTASM uppercase from stock config,
+        # but not the lower-case identifier used by the Visual/02 entry.
+        if re.search(r"\bmov\s+r0,\s*edtasm\+3\b", line, re.IGNORECASE):
+            line = re.sub(r"\bedtasm\+3\b", "EDTASM+3", line)
 
         directive = line.strip()
+        if directive.upper() == "#IFDEF STGROM":
+            in_stgrom = True
         if IF_OPEN.match(directive):
             depth += 1
         elif directive.lower() == "#endif":
@@ -76,13 +117,32 @@ def normalize(path: pathlib.Path) -> None:
                     and following.upper() == "#IFDEF ANYROM"
                 )
                 if known_orphan:
-                    continue  # Unmatched upstream directive, no emitted bytes.
+                    continue  # one upstream stray directive; emits no bytes
                 raise ValueError(f"unexpected unmatched #endif at line {i + 1}")
             depth -= 1
+            if in_stgrom and depth == 0:
+                in_stgrom = False
         output.append(line)
+        # Insert aliases alongside the *stock* STGROM DATA/CODE definitions.
+        # Derive every value from BIOS and config; no hard-coded ROM map.
+        if in_stgrom and re.match(r"^#define DATA\s+", directive):
+            nearby = source[i + 1 : i + 5]
+            already = any("#define FTYPE" in candidate for candidate in nearby)
+            if not already:
+                output.extend(f"#define {name} {rhs}" for name, rhs in aliases.items())
     if depth:
         raise ValueError(f"unclosed preprocessor conditional(s): {depth}")
     path.write_text("\n".join(output) + "\n", encoding="utf-8")
+
+
+def normalize(path: pathlib.Path) -> None:
+    config = read_defines(path.with_name("config.inc"))
+    bios = path.with_name("bios.inc")
+    aliases = service_aliases(bios, config)
+    if path.name == "bios.inc":
+        normalize_bios(path, config)
+    else:
+        normalize_visual(path, config, aliases)
 
 
 def main() -> int:
