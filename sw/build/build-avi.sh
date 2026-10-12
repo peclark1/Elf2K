@@ -41,6 +41,24 @@ cp "$DEPS/stgrom-archive/bios"/rcbasic.asm "$WORK/"
 cp "$DEPS/stgrom-archive/bios"/xmodem.asm "$WORK/"
 cp "$DEPS/edtasm"/edtasm.asm "$WORK/"
 
+# EDTASM's optional 'V' command unconditionally references Visual/02.
+# While Visual/02 is deferred, turn the command into a safe monitor return.
+# Work on the disposable copy only; do NOT touch the pinned Riley source.
+python3 - "$WORK/edtasm.asm" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+changes = (("lbz     visual02", "lbz     exitaddr"),
+           ("lbr     visual+3", "lbr     exitaddr"))
+for before, after in changes:
+    if s.count(before) != 1:
+        raise SystemExit("Expected EDTASM Visual/02 hook: " + before)
+    s = s.replace(before, after)
+p.write_text(s)
+PY
+
+
 for src in bios.asm xmodem.asm edtasm.asm; do
   python3 "$SW/build/normalize-rcasm.py" "$WORK/$src"
 done
