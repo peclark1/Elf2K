@@ -1,0 +1,2 @@
+# All toolchain checkouts, generated ROMs and assembler listings are disposable.
+.build/

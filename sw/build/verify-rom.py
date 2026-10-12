@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compare two 27C256 Intel HEX images as 32 KiB ROM byte streams."""
 from __future__ import annotations
+import hashlib
 import pathlib
 import sys
 
@@ -53,6 +54,10 @@ def main() -> int:
     ref, got = load_hex(ref_path), load_hex(got_path)
     print(f"reference: {len(ref)} bytes, checksum16={checksum16(ref):04X}, stored={ref[-2]:02X}{ref[-1]:02X}")
     print(f"generated: {len(got)} bytes, checksum16={checksum16(got):04X}, stored={got[-2]:02X}{got[-1]:02X}")
+    print(f"reference Intel HEX SHA-256: {hashlib.sha256(ref_path.read_bytes()).hexdigest()}")
+    print(f"generated Intel HEX SHA-256: {hashlib.sha256(got_path.read_bytes()).hexdigest()}")
+    print(f"reference binary SHA-256: {hashlib.sha256(ref).hexdigest()}")
+    print(f"generated binary SHA-256: {hashlib.sha256(got).hexdigest()}")
     diffs = [i for i, (a, b) in enumerate(zip(ref, got)) if a != b]
     if not diffs:
         print("ROM verification: byte-for-byte MATCH")
@@ -61,6 +66,17 @@ def main() -> int:
     print("first differences (logical CPU address: reference -> generated):")
     for i in diffs[:32]:
         print(f"  ${LOGICAL_BASE + i:04X}: {ref[i]:02X} -> {got[i]:02X}")
+    print("differences by original stock ROM components:")
+    regions = (
+        ("Monitor", 0x8000, 0x97FF), ("HELP", 0x9800, 0xA0FF),
+        ("SEDIT", 0xA100, 0xA3FF), ("EDTASM", 0xA400, 0xB0FF),
+        ("Visual/02", 0xB100, 0xC1FF), ("rc/BASIC", 0xC200, 0xDBFF),
+        ("rc/Forth", 0xDC00, 0xEFFF), ("XMODEM", 0xF000, 0xF2FF),
+        ("BIOS", 0xF300, 0xFFFF),
+    )
+    for component, begin, end in regions:
+        differences = sum(begin <= LOGICAL_BASE + i <= end for i in diffs)
+        print(f"  {component:10s} {begin:04X}-{end:04X}: {differences} different bytes")
     print("differences by 256-byte logical ROM page:")
     pages = {}
     for i in diffs:

@@ -16,7 +16,7 @@ import sys
 # Rc/Asm treats a trailing semicolon comment on INCLUDE as part of the
 # filename. Keep the comment on its own line to preserve source history.
 INCLUDE_WITH_COMMENT = re.compile(
-    r"^(\\s*include\\s+\\S+?)\\s+(;.*)$", re.IGNORECASE
+    r"^(\s*include\s+\S+?)\s+(;.*)$", re.IGNORECASE
 )
 
 LABEL_AND_CODE = re.compile(
