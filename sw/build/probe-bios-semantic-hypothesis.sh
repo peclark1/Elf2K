@@ -30,8 +30,14 @@ def insert(m):
             "        phi     rf ; EXPERIMENT: ref has BF\n"+m.group(4))
 updated,count=re.subn(pat,insert,text)
 if count != 1: raise SystemExit(f"Expected exactly one historic IDE size sequence: got {count}")
+# The reference contains TWO BNZ size_lp2 branches at the matching block.
+# Differentiate this from arbitrary global branch relaxation by requiring
+# precisely the two historical copies at the known source symbol.
+updated,nshort=re.subn(r"(?im)^([ \\t]*)lbnz([ \\t]+size_lp2\\b)",
+                       r"\\1bnz\\2",updated)
+if nshort!=2: raise SystemExit(f"Expected 2 LBNZ size_lp2 branches: got {nshort}")
 p.write_text(updated)
-print("TEST ONLY: add source opcodes matching original bytes AF/BF; semantic change NOT approved")
+print("TEST ONLY: two historical register-transfer opcodes AF/BF and both size_lp2 short branches")
 PY
 cd "$TRIAL"
 assemble() {
