@@ -144,6 +144,33 @@ class Asm02IncludeTests(unittest.TestCase):
         first = transform(source, prepare_asm02)
         self.assertEqual(transform(first, prepare_asm02), first)
 
+    def test_visual02_state_fields_use_previous_memory_field_not_cpu_register(self) -> None:
+        source = (
+            "           org     DATA\n"
+            "v_r0:      equ     $\n"
+            "v_r1:      equ     r0+2\n"
+            "v_r2:      equ     r1+2\n"
+            "v_ra:      equ     r9+2\n"
+            "v_rf:      equ     re+2\n"
+            "q:         equ     rf+2\n"
+            "t:         equ     q+1\n"
+            "loop:      ldn     r7 ; CPU register operand unchanged\n"
+        )
+        expected = (
+            source.replace("v_r1:      equ     r0+2", "v_r1:      equ     v_r0+2")
+                  .replace("v_r2:      equ     r1+2", "v_r2:      equ     v_r1+2")
+                  .replace("v_ra:      equ     r9+2", "v_ra:      equ     v_r9+2")
+                  .replace("v_rf:      equ     re+2", "v_rf:      equ     v_re+2")
+                  .replace("q:         equ     rf+2", "q:         equ     v_rf+2")
+        )
+        first = transform(source, prepare_asm02)
+        self.assertEqual(first, expected)
+        self.assertEqual(transform(first, prepare_asm02), first)
+
+    def test_visual02_invalid_sequential_field_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "register-field chain"):
+            transform("v_r2: equ r0+2\n", prepare_asm02)
+
     def test_stock_constants_are_expanded_in_secondary_defines(self) -> None:
         source = "#define CODE VISUAL\n#define DATA RAMPAGE-0100h\n"
         self.assertEqual(
