@@ -1,7 +1,7 @@
 # Task: Review ROM software together before finalizing AVI ROM layout
 
 **Status:** OPEN — awaiting joint review and decisions  
-**Priority:** Before locking the custom AVI ELF II/Hyperboard ROM layout  
+**Priority:** Before approving final hardware ROM selection (not a blocker for a preliminary AVI build)  
 **Parent design:** [AVI ELF II Hyperboard ROM Design](AVI_ELF_II_HYPERBOARD_ROM_DESIGN.md)
 
 ## Goal
@@ -42,7 +42,7 @@ This is a **review and prioritization task**, not permission to modify or remove
 3. Review original Netronics programs separately; distinguish *documented* software from binaries/sources actually recovered.
 4. Add up the total bytes recovered and required, respecting the 32 KiB ROM limit, placement constraints, and page-sensitive 1802 branches.
 5. Agree on a primary ROM contents list and optional alternate ROM variants if necessary.
-6. Update this table and the design document with the agreed decisions and sketch the proposed memory map. Only then implement `config.AVIElf2`.
+6. Update this table and design with final agreed decisions before hardware ROM approval. A preliminary independent `config.AVIElf2` may be built earlier with explicit provisional choices.
 
 **Hard constraints:** Preserve `config.Elf2K-alternate` and the verified stock `Elf2K-alternate.hex` checksum `F0CB`. No software is removed without a joint decision.
 
@@ -53,3 +53,8 @@ This is a **review and prioritization task**, not permission to modify or remove
 - [ ] Original Netronics software candidates considered with provenance status
 - [ ] ROM-space budget and optional variants agreed
 - [ ] Final software selection documented and approved by the user
+
+
+## 2026-10-12 revised priority
+
+The owner/coordinator has explicitly authorized the independent `config.AVIElf2`/`AVIElf2.hex` development milestone without requiring historical stock byte matching or first completing the joint selection review. The first AVI layout provisionally retains monitor, HELP, EDTASM, Visual/02, rc/BASIC, XMODEM and BIOS, and reserves the SEDIT and Forth allocations. These are **provisional AVI-only implementation selections, not final component decisions**. All stock configurations, images and historical artifacts remain untouched. See [AVI_ROM_IMPLEMENTATION_STATUS.md](AVI_ROM_IMPLEMENTATION_STATUS.md). Do not merge or program an EEPROM without authorization.
