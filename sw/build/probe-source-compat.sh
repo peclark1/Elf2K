@@ -160,6 +160,15 @@ s, n = re.subn(r"(?im)^#define[ \t]+CODE[ \t]+FORTH(.*)$",
                "#define CODE " + address.group(1), s, count=1)
 if n != 1:
     raise SystemExit(f"expected one STGROM CODE alias, got {n}")
+# The public Asm/02 pass does not expand XMODEM in chained EQU
+# expressions; resolve its XMODEM vectors from the same stock config.
+xm = re.search(r"(?im)^#define[ \t]+XMODEM[ \t]+(\S+)", config)
+if not xm:
+    raise SystemExit("stock XMODEM origin not found")
+s, n = re.subn(r"(?im)^(\s*x(?:openw|openr|read|write|closew|closer):\s+equ\s+)XMODEM\b",
+               lambda m: m.group(1) + xm.group(1), s)
+if n != 6:
+    raise SystemExit(f"expected six XMODEM vector EQU lines, found {n}")
 # Original archive's Asm/02 command expects ops.inc pseudo-instructions.
 s = "#include ops.inc\n" + s
 p.write_text(s, encoding="utf-8")
@@ -210,3 +219,54 @@ if (cd "$TRIAL" && "$DEPS/rcasm/rcasm" -v -h -l -x -d1802 -DELF2K -DSTGROM bios.
 else
     echo "BIOS THREE-BRANCH PROBE DID NOT ASSEMBLE"
 fi
+
+
+# Explore only the unambiguous next branch-encoding difference, one at a
+# time, stopping if it does not improve the reference diff. Never modify
+# the stock assembler source, the immutable ROM, or canonical build output.
+echo "======= BIOS BRANCH-ENCODING SERIES (DISPOSABLE) ======="
+AUTO="$OUT/bios-branch-series"
+rm -rf "$AUTO"
+mkdir -p "$AUTO"
+cp "$OUT/bios-three-short-branches/bios.asm" "$AUTO/bios.asm"
+cp "$WORK/config.inc" "$WORK/bios.inc" "$AUTO/"
+prev="$(sed -n 's/.*diff_count=\([0-9][0-9]*\).*/\1/p' "$OUT/bios-three-short-branches/comparison.txt" | head -n 1)"
+printf "step 0: %s differences (3 confirmed branch substitutions)\n" "$prev"
+for step in $(seq 1 20); do
+    cp "$AUTO/bios.asm" "$AUTO/bios-prev.asm"
+    if ! python3 "$ROOT/sw/build/probe-bios-branches.py" "$REF" "$AUTO/bios.hex" "$AUTO/bios.lst" "$AUTO/bios.asm" >"$AUTO/step-$step.txt" 2>&1; then
+        if [[ "$step" == 1 ]]; then
+            # The previously verified third-branch trial is the starting
+            # candidate for the series, not an output of this loop.
+            cp "$OUT/bios-three-short-branches/bios.hex" "$AUTO/bios.hex"
+            cp "$OUT/bios-three-short-branches/bios.lst" "$AUTO/bios.lst"
+            if ! python3 "$ROOT/sw/build/probe-bios-branches.py" "$REF" "$AUTO/bios.hex" "$AUTO/bios.lst" "$AUTO/bios.asm" >"$AUTO/step-$step.txt" 2>&1; then
+                cat "$AUTO/step-$step.txt"
+                break
+            fi
+        else
+            cat "$AUTO/step-$step.txt"
+            break
+        fi
+    fi
+    cat "$AUTO/step-$step.txt"
+    rm -f "$AUTO/bios.hex"
+    if ! (cd "$AUTO" && "$DEPS/rcasm/rcasm" -v -h -l -x -d1802 -DELF2K -DSTGROM bios.asm >bios.lst 2>&1); then
+        echo "Assembler rejected step $step; restoring previous trial"
+        cp "$AUTO/bios-prev.asm" "$AUTO/bios.asm"
+        break
+    fi
+    python3 "$ROOT/sw/build/compare-component.py" "$REF" "$AUTO/bios.hex" F300 10000 >"$AUTO/comparison.txt" || true
+    now="$(sed -n 's/.*diff_count=\([0-9][0-9]*\).*/\1/p' "$AUTO/comparison.txt" | head -n 1)"
+    if [[ -z "$now" ]] || ((now >= prev)); then
+        echo "Step $step did not improve ($prev -> $now); preserving prior trial"
+        cp "$AUTO/bios-prev.asm" "$AUTO/bios.asm"
+        break
+    fi
+    echo "step $step: $prev -> $now differing BIOS bytes"
+    cp "$AUTO/bios.asm" "$AUTO/bios-step-$step.asm"
+    cp "$AUTO/bios.hex" "$AUTO/bios-step-$step.hex"
+    prev="$now"
+    if ((now == 0)); then echo "BIOS reference reached by trial"; break; fi
+done
+echo "BIOS encoding-series final accepted trial diff: $prev (not production)"
