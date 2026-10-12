@@ -38,6 +38,7 @@ jobs:
             .build/stock-rom-repro/second/work/*.lst
             .build/stock-rom-repro/second/work/config.inc
             .build/stock-rom-repro/*.txt
+            .build/stock-rom-repro/*.csv
             .build/stock-rom-repro/first/work/visual02.asm
             .build/stock-rom-repro/first/work/bios.inc
             .build/deps/asm02/asm.c
