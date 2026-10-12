@@ -20,6 +20,16 @@ INCLUDE = re.compile(
 IF_OPEN = re.compile(r"^#(?:if|ifdef|ifndef)\s+", re.IGNORECASE)
 DEFINE = re.compile(r"^(\s*#define[ \t]+)([A-Za-z_][A-Za-z0-9_]*)([ \t]+)(.*)$")
 WORD = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
+# The upstream Visual/02 source labels its memory image v_r0..v_rf, but its
+# following EQU expressions refer to r0..rf. With modern Asm/02 those names
+# are CPU register constants (0..15), not the previous memory-field labels.
+# Repair only the specific sequential data-layout definitions, not instructions
+# or arbitrary symbols. The untouched reference has Q at $7E20, not $0011.
+VISUAL_REGISTER_FIELD = re.compile(
+    r"^(\s*v_r([1-9a-f]):\s+equ\s+)r([0-9a-e])(\+2\b.*)$", re.IGNORECASE,
+)
+VISUAL_Q_FIELD = re.compile(r"^(\s*q:\s+equ\s+)rf(\+2\b.*)$", re.IGNORECASE)
+
 RELOCATED = {
     "../ops.inc": "ops.inc",
     "../bios.inc": "bios.inc",
@@ -102,6 +112,18 @@ def normalize_visual(path: pathlib.Path, config: dict[str, str],
         # but not the lower-case identifier used by the Visual/02 entry.
         if re.search(r"\bmov\s+r0,\s*edtasm\+3\b", line, re.IGNORECASE):
             line = re.sub(r"\bedtasm\+3\b", "EDTASM+3", line)
+
+        field = VISUAL_REGISTER_FIELD.match(line)
+        if field:
+            prefix, register_name, previous_name, suffix = field.groups()
+            previous = int(register_name, 16) - 1
+            if int(previous_name, 16) != previous:
+                raise ValueError(f"unexpected Visual/02 register-field chain: {line}")
+            line = f"{prefix}v_r{previous:x}{suffix}"
+        else:
+            q_field = VISUAL_Q_FIELD.match(line)
+            if q_field:
+                line = f"{q_field.group(1)}v_rf{q_field.group(2)}"
 
         directive = line.strip()
         if directive.upper() == "#IFDEF STGROM":
