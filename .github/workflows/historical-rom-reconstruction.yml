@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Verify production inputs remain frozen
         run: |
           git diff --exit-code 8df2d5b2bc0a512316c192fdbe1a6906fbc406e8 HEAD -- \
@@ -29,16 +31,17 @@ jobs:
       - name: Preserve strict reference mismatch, reproduce two independent builds
         run: |
           set +e
-          bash sw/build/reproduce-stock.sh >.build-reconstruction-baseline.log 2>&1
+          mkdir -p .build/historical-reconstruction
+          bash sw/build/reproduce-stock.sh >.build/historical-reconstruction/canonical-baseline.log 2>&1
           status=$?
           set -e
-          tail -n 60 .build-reconstruction-baseline.log
+          tail -n 60 .build/historical-reconstruction/canonical-baseline.log
           if [[ "$status" -ne 1 ]]; then echo "Unexpected reference gate status: $status"; exit 1; fi
-          grep -q 'INDEPENDENT BUILD RESULT: MATCH' .build-reconstruction-baseline.log
-          grep -q 'STOCK REFERENCE RESULT: MISMATCH' .build-reconstruction-baseline.log
-          grep -q 'MISMATCH (10441 differing bytes)' .build-reconstruction-baseline.log
+          grep -q 'INDEPENDENT BUILD RESULT: MATCH' .build/historical-reconstruction/canonical-baseline.log
+          grep -q 'STOCK REFERENCE RESULT: MISMATCH' .build/historical-reconstruction/canonical-baseline.log
+          grep -q 'MISMATCH (10441 differing bytes)' .build/historical-reconstruction/canonical-baseline.log
           mkdir -p .build/historical-reconstruction
-          cp .build-reconstruction-baseline.log .build/historical-reconstruction/canonical-baseline.log
+          cp .build/historical-reconstruction/canonical-baseline.log .build/historical-reconstruction/canonical-baseline.log
       - name: Audit historical pinned source and preassembled release artifacts
         run: |
           python3 sw/build/audit-historical-reconstruction.py \
