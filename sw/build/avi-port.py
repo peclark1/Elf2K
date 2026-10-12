@@ -121,7 +121,7 @@ def port_boots(path: Path) -> None:
     # on reset so incorrect jumpers cannot make the system unbootable.
     cmd = 'CMDTBL:\tCMD(4, "CONTINUE", CONTINUE)'
     s = substitute_exact(s, cmd, cmd + '\n#ifdef AVIELF2\n'
-        + '\\tCMD(3, "UART", AVIUART)\n#endif')
+        + "\tCMD(3, \"UART\", AVIUART)\n#endif")
     end_marker = "; The table always ends with a zero byte...\n\t.DB\t0"
     if s.count(end_marker) != 1:
         raise RuntimeError("missing primary command table terminator")
