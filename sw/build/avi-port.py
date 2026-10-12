@@ -122,9 +122,9 @@ def port_boots(path: Path) -> None:
     cmd = 'CMDTBL:\tCMD(4, "CONTINUE", CONTINUE)'
     s = substitute_exact(s, cmd, cmd + '\n#ifdef AVIELF2\n'
         + '\\tCMD(3, "UART", AVIUART)\n#endif')
-    end_marker = '; The table always ends with a zero byte...'
+    end_marker = "; The table always ends with a zero byte...\n\t.DB\t0"
     if s.count(end_marker) != 1:
-        raise RuntimeError("missing primary command-table endpoint")
+        raise RuntimeError("missing primary command table terminator")
     uart_handler = '''
 #ifdef AVIELF2
 ; UART switches to CDP1854/COM2 only after a successful software boot.
@@ -147,7 +147,7 @@ AVIUART: CALL(ISEOL)
 #endif
 
 '''
-    s = substitute_exact(s, end_marker, uart_handler + end_marker)
+    s = substitute_exact(s, end_marker, end_marker + uart_handler)
     # Disable commands that knowingly touch Elf2K IDE, RTC or NVR
     # hardware. INPUT/OUTPUT remain available to test COM2 explicitly.
     forbidden = {"BOOT", "NVR", "IDE", "DATE", "RESTART", "CPU", "TERMINAL"}
