@@ -74,6 +74,8 @@ DEVICES:equ     05h     ; all versions support IDE and bit banged serial
 
 def port_boots(path: Path) -> None:
     s = path.read_text()
+    # Distinctive banner, without changing the stock historical source.
+    s = substitute_exact(s, r'COSMAC ELF 2000 \000', r'AVI ELF II \000')
     # Self-checks for ROM and RAM remain intact; bypass only absent
     # DS1287, 8250, PPI, speaker, PS/2 POST sequences.
     s = substitute_exact(s, "DPDONE:\n", """DPDONE:
