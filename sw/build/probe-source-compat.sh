@@ -153,15 +153,15 @@ for name in ("config.inc", "bios.inc"):
 # Public Asm/02 does not recursively expand CODE=FORTH: resolve the
 # historical CODE symbolic alias from the unchanged stock generated config.
 config = (p.parent / "config.inc").read_text(encoding="utf-8")
-address = re.search(r"(?im)^#define[ \\t]+FORTH[ \\t]+(\\S+)", config)
+address = re.search(r"(?im)^#define[ \t]+FORTH[ \t]+(\S+)", config)
 if not address:
     raise SystemExit("stock FORTH origin not found")
-s, n = re.subn(r"(?im)^#define[ \\t]+CODE[ \\t]+FORTH(.*)$",
+s, n = re.subn(r"(?im)^#define[ \t]+CODE[ \t]+FORTH(.*)$",
                "#define CODE " + address.group(1), s, count=1)
 if n != 1:
     raise SystemExit(f"expected one STGROM CODE alias, got {n}")
 # Original archive's Asm/02 command expects ops.inc pseudo-instructions.
-s = "#include ops.inc\\n" + s
+s = "#include ops.inc\n" + s
 p.write_text(s, encoding="utf-8")
 PY
     if ! (cd "$trial" && "$DEPS/asm02/asm02" -i -L -s -DELF2K -DSTGROM forth.asm >forth.lst 2>&1) || [[ ! -s "$trial/forth.hex" ]]; then
@@ -196,7 +196,7 @@ import re
 import sys
 p=Path(sys.argv[1])
 s=p.read_text(encoding="utf-8")
-s,n=re.subn(r"(?im)^([ \\t]*)lbr([ \\t]+abdlp1\\b)",r"\\1br\\2",s)
+s,n=re.subn(r"(?im)^([ \t]*)lbr([ \t]+abdlp1\b)",r"\1br\2",s)
 if n!=1: raise SystemExit(f"expected 1 LBR abdlp1: found {n}")
 p.write_text(s,encoding="utf-8")
 PY
