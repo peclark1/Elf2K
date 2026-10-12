@@ -39,4 +39,5 @@ jobs:
             .build/deps/asm02/asm.c
             .build/deps/asm02/header.h
             .build/deps/asm02/Makefile
+            sw/Elf2K-alternate.hex
           if-no-files-found: ignore
