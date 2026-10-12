@@ -55,6 +55,9 @@ else
 fi
 cat "$OUT/reference-compare-second.txt"
 
+echo "======= COMPLETE REFERENCE BYTE DIFFERENCES ======="
+python3 "$SW/build/write-byte-diff-csv.py" "$REF" "$FIRST" "$OUT/reference-byte-differences.csv"
+sha256sum "$OUT/reference-byte-differences.csv"
 echo "======= LOCKED TOOL SOURCE REVISIONS ======="
 DEPS="$ROOT/.build/deps"
 for dep in stg-tools rcasm asm02 stgrom-archive rcforth edtasm visual02 elfops; do
