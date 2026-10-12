@@ -32,16 +32,15 @@ for src in bios.asm xmodem.asm sedit.asm edtasm.asm forth.asm; do
   python3 "$SW/build/normalize-rcasm.py" "$WORK/$src"
 done
 
-# VISUAL/02 assumes Riley's old sibling-repository checkout layout.
+# VISUAL/02 assumes Riley's old sibling-repository checkout layout
+# and mixes RcAsm-style INCLUDE with Asm/02's #include form.
 cp "$DEPS/visual02/visual02.asm" "$WORK/visual02.asm"
 cp "$DEPS/elfops/include/ops.inc" "$WORK/ops.inc"
-# Asm/02's #include parser treats quotation marks as filename bytes; using
-# a quoted path makes its fopen() fail and may crash on the next read.
-sed -i -e 's|#include ../ops.inc|#include ops.inc|' \
-       -e 's|include[[:space:]]*../bios.inc|include bios.inc|' \
-       "$WORK/visual02.asm"
-# Fail with a useful message rather than passing a missing include to Asm/02.
-grep -qE '^[[:space:]]*#include[[:space:]]+ops[.]inc[[:space:]]*$' "$WORK/visual02.asm"
+python3 "$SW/build/prepare-asm02-source.py" "$WORK/visual02.asm"
+# Catch missing/malformed relocated includes before Asm/02 opens NULL handles.
+grep -qF '#include ops.inc' "$WORK/visual02.asm"
+grep -qF '#include bios.inc' "$WORK/visual02.asm"
+grep -qF '#include config.inc' "$WORK/visual02.asm"
 test -f "$WORK/ops.inc"
 
 MAKE_ARGS=(
