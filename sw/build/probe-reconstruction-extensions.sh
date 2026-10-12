@@ -52,7 +52,7 @@ cp "$WORK/config.inc" "$WORK/bios.inc" "$BIOS/"
 : > "$BIOS/ledger.txt"
 for step in $(seq 1 12); do
   cp "$BIOS/bios.asm" "$BIOS/bios-before-$step.asm"
-  if ! python3 "$ROOT/sw/build/probe-bios-branches.py" "$REF" "$BIOS/bios.hex" "$BIOS/bios.lst" "$BIOS/bios.asm" >"$BIOS/step-$step.txt" 2>&1; then
+  if ! python3 "$ROOT/sw/build/probe-bios-next-branch.py" "$REF" "$BIOS/bios.hex" "$BIOS/bios.lst" "$BIOS/bios.asm" >"$BIOS/step-$step.txt" 2>&1; then
     cat "$BIOS/step-$step.txt" | tee -a "$BIOS/ledger.txt"
     break
   fi
@@ -69,3 +69,49 @@ for step in $(seq 1 12); do
   if grep -q 'diff_count=0 ' "$BIOS/comparison-$step.txt"; then break; fi
 done
 echo "All BIOS lookahead candidates remain isolated; no reference data was altered." | tee -a "$BIOS/ledger.txt"
+
+# The archive's Forth 0.3 forth1.asm provides an alternative display routine
+# with a #if 0 block around the ONLY 'disp:' label. Yet 38 historical
+# DW disp sites refer to it. Test inserting that existing symbolic entry name
+# before the historical replacement routine in a disposable copy ONLY.
+FORTH="$OUT/forth1-disposable-disp-label"
+mkdir -p "$FORTH"
+cp "$ROOT/.build/stock-compat-probes/archive-forth1-asm02/forth.asm" "$FORTH/forth.asm"
+cp "$ROOT/.build/stock-compat-probes/archive-forth1-asm02/config.inc" "$FORTH/"
+cp "$ROOT/.build/stock-compat-probes/archive-forth1-asm02/bios.inc" "$FORTH/"
+cp "$ROOT/.build/stock-compat-probes/archive-forth1-asm02/ops.inc" "$FORTH/"
+python3 - "$FORTH/forth.asm" <<'PY'
+from pathlib import Path
+import re,sys
+path=Path(sys.argv[1])
+text=path.read_text()
+pattern=r"(?s)(#if 0[ \t]*\ndisp:[^\n]*\n.*?\n#else[ \t]*\n)(#ifdef ELFOS)"
+patched,n=re.subn(pattern,r"\1disp:\n\2",text,count=1)
+if n!=1:
+    raise SystemExit(f"Historical forth1 display label anchor count {n} != 1")
+path.write_text(patched)
+PY
+echo "======= ARCHIVED FORTH 0.3: DISPOSABLE FORWARD-LABEL TRIAL ======="
+if (cd "$FORTH" && "$DEPS/asm02/asm02" -i -L -s -DELF2K -DSTGROM forth.asm >forth.lst 2>&1); then
+  echo "Historical 0.3 source assembles after restoring missing DISP entry label"
+  grep -E '^(Code Generated|Errors|Lines Assembled)' "$FORTH/forth.lst" || true
+  python3 "$ROOT/sw/build/compare-component.py" "$REF" "$FORTH/forth.hex" DC00 F000 >"$FORTH/comparison.txt" || true
+  head -n 11 "$FORTH/comparison.txt"
+  python3 - "$FORTH/forth.hex" <<'PY'
+import sys
+from pathlib import Path
+end=0
+for line in Path(sys.argv[1]).read_text().splitlines():
+    if not line.startswith(':'): continue
+    raw=bytes.fromhex(line[1:])
+    if raw[3]==0:
+        end=max(end,(raw[1]<<8)+raw[2]+raw[0])
+print(f"Historical forth1 emitted end address (exclusive): ${end:04X}; stock slot ends at ${0xF000:04X}")
+if end > 0xF000:
+    print("OVERLAP: candidate cannot replace the stock Forth component unchanged")
+PY
+else
+  echo "Forth1 label correction was insufficient; see assembler diagnostic"
+  grep -n 'ERROR' "$FORTH/forth.lst" | head -n 16 || true
+fi
+echo "Forth1 trial retained only under disposable reconstruction artifacts."
