@@ -25,6 +25,9 @@ jobs:
           sha256sum sw/Elf2K-alternate.hex
       - name: Two clean stock ROM builds and strict byte comparison
         run: bash sw/build/reproduce-stock.sh
+      - name: Test historical assembly differences against stock reference
+        if: failure()
+        run: bash sw/build/probe-source-compat.sh
       - name: Probe historical source revisions after stock mismatch
         if: failure()
         run: bash sw/build/probe-historical-sources.sh
@@ -49,4 +52,5 @@ jobs:
             .build/deps/asm02/Makefile
             sw/Elf2K-alternate.hex
             .build/stock-source-probes/**
+            .build/stock-compat-probes/**
           if-no-files-found: ignore
