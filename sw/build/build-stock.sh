@@ -54,6 +54,9 @@ make -C "$WORK" "${MAKE_ARGS[@]}" boots.hex
 # and mixes RcAsm-style INCLUDE with Asm/02's #include form.
 cp "$DEPS/visual02/visual02.asm" "$WORK/visual02.asm"
 cp "$DEPS/elfops/include/ops.inc" "$WORK/ops.inc"
+# The pinned public Asm/02 expands BIOS #defines only once. Resolve those
+# constants from this stock config in the disposable include, after TASM boots.
+python3 "$SW/build/prepare-asm02-source.py" "$WORK/bios.inc"
 python3 "$SW/build/prepare-asm02-source.py" "$WORK/visual02.asm"
 # Catch missing/malformed relocated includes before Asm/02 opens NULL handles.
 grep -qF '#include ops.inc' "$WORK/visual02.asm"
