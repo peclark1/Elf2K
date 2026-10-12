@@ -14,7 +14,7 @@ The owner/coordinator removed byte-for-byte historical-stock ROM equivalence as 
 | HELP $9800-$A0FF | **Replace in AVI only** | Preliminary AVI-specific message; no claim that stock peripheral commands are safe. |
 | SEDIT $A100-$A3FF | **Omit, reserve** | Disk sector editor requires Elf2K IDE hardware; revisit if a storage controller is fitted. |
 | EDTASM $A400-$B0FF | **Keep (provisional)** | Test serial, BIOS calls, RAM/workspace usage. |
-| Visual/02 $B100-$C1FF | **Keep (provisional)** | Test debugger operation and BIOS terminal I/O. |
+| Visual/02 $B100-$C1FF | **Defer, reserve in first image** | Pinned Asm/02 crashes on Visual/02 in CI; keep all upstream source/history and restore in an optional build after investigating toolchain. |
 | rc/BASIC L2 $C200-$DBFF | **Keep (provisional)** | Test initialization, program space and terminal. |
 | rc/Forth $DC00-$EFFF | **Omit, reserve** | Frees 5120 bytes for Netronics software; consider separately selectable Forth build later. |
 | XMODEM $F000-$F2FF | **Keep (provisional)** | Transfer utility useful with serial; cassette entry conflict requires Tiny BASIC call remapping. |
@@ -34,7 +34,7 @@ The selection is explicitly provisional and does not close the outstanding owner
 | $9800-$A0FF | 2304 B | AVI help |
 | $A100-$A3FF | 768 B | Reserved, SEDIT removed |
 | $A400-$B0FF | 3328 B | EDTASM |
-| $B100-$C1FF | 4352 B | Visual/02 |
+| $B100-$C1FF | 4352 B | Reserved until Visual/02 assembler is repaired |
 | $C200-$DBFF | 6656 B | rc/BASIC |
 | $DC00-$E9AF | 3504 B | Reserved Tiny BASIC payload |
 | $E9B0-$E9FF | 80 B | Reserved alignment |
@@ -55,7 +55,7 @@ This is a **source-level risk inventory**, not an assertion of hardware compatib
 - **Legacy UART:** BOOTS includes 8250/16450/16550 loopback initialization (legacy POST codes 69/68/67/65/64/63/60), UART register selection, and baud restoration. These cannot be pointed at CDP1854 registers.
 - **IDE/bootstrap:** BOOTS contains IDE probing/BOOT-from-disk, and SEDIT assumes a disk controller. Omission of SEDIT does NOT eliminate IDE code in the inherited monitor or BIOS.
 - **Other legacy paths:** conditional PS/2, VT1802 CRT, GPIO/speaker, and Elf2K-specific switch test paths require explicit removal or gating. PIXIE video is disabled for the first scaffold rather than assuming a tested DMA/console combination.
-- **BIOS contract:** retain stable service entry points for monitor, EDITASM, Visual/02, BASIC and XMODEM while replacing the hardware-specific terminal backend.
+- **BIOS contract:** retain stable service entry points for monitor, EDTASM, BASIC and XMODEM; restore Visual/02 service integration later while replacing the hardware-specific terminal backend.
 
 ## Hyperboard facts and bench-verification blockers
 
@@ -78,3 +78,8 @@ The separate CI job builds into avi-pass1 and avi-pass2; uses pinned dependencie
 **Pass/fail build validation is not functional acceptance.** Next: gate/replace startup NVR/RTC/IDE/8250 actions, implement and test correct CDP1854 polling console with a verified port map, then integrate Tiny BASIC and cassette. Functional tests must include sustained UART input/output with CDP1861 DMA active.
 
 **No merge, EEPROM writing, or claim of hardware readiness is authorized.**
+
+
+## CI toolchain blocker recorded
+
+The stock-rebuild helper now passes Forth source normalization, but the pinned historical Asm/02 crashes compiling Visual/02 on the current GitHub runner. For the first AVI development image only, Visual/02 is temporarily omitted and its 4352-byte region reserved FF. This does not change the stock configuration, baseline ROM, Visual/02 sources or the owner selection review. Stock rebuild CI may remain red until Asm/02 is repaired; the AVI CI is a distinct check. Do not present those failures as a loss of stock image/artifact preservation.
