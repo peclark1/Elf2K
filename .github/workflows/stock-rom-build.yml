@@ -16,7 +16,7 @@ jobs:
       - name: Install build prerequisites
         run: sudo apt-get update && sudo apt-get install -y build-essential git python3
       - name: Validate stock build shell syntax
-        run: bash -n sw/build/build-stock.sh sw/build/prepare-deps.sh sw/build/reproduce-stock.sh
+        run: bash -n sw/build/build-stock.sh sw/build/prepare-deps.sh sw/build/reproduce-stock.sh sw/build/probe-historical-sources.sh sw/build/probe-source-compat.sh
       - name: Regression tests for source normalizers
         run: python3 -m unittest discover -s sw/build/tests -v
       - name: Record untouched reference identity
