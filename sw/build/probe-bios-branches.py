@@ -56,17 +56,34 @@ def main():
         if match and int(match[1], 16) == address and int(match[2], 16) == actual:
             code = re.search(r"\b" + oldop + r"\s+([\w.$?]+)\b", line, re.IGNORECASE)
             if code:
-                found.append(code[1])
+                comment = line.split(";", 1)[1].strip() if ";" in line else None
+                found.append((code[1], comment))
     if len(found) != 1:
         print(f"Unable to unambiguously locate {oldop} at 0x{address:04X}: {found}")
         return 1
-    target = found[0]
+    target, listing_comment = found[0]
     body = source.read_text()
-    pattern = r"(?im)^(\s*)" + re.escape(oldop) + r"(\s+)" + re.escape(target) + r"\b"
-    revised, count = re.subn(pattern, lambda m: m.group(1) + newop + m.group(2) + target, body)
-    if count != 1:
-        print(f"Source {oldop} {target} not unique ({count}); no edit")
+    # When the same branch appears twice, choose only the source statement
+    # whose trailing comment exactly matches the listing at the address.
+    # Without a unique correspondence, never attempt a guess or edit.
+    pattern = re.compile(r"(?im)^([ \t]*)" + re.escape(oldop) + r"([ \t]+)" + re.escape(target) + r"\b")
+    candidates = list(pattern.finditer(body))
+    if len(candidates) > 1 and listing_comment:
+        exact = []
+        for candidate in candidates:
+            line_end = body.find("\n", candidate.end())
+            if line_end < 0:
+                line_end = len(body)
+            source_line = body[candidate.start():line_end]
+            source_comment = source_line.split(";", 1)[1].strip() if ";" in source_line else None
+            if source_comment == listing_comment:
+                exact.append(candidate)
+        candidates = exact
+    if len(candidates) != 1:
+        print(f"Source {oldop} {target} not uniquely address-verified (matches={len(candidates)}); no edit")
         return 1
+    match = candidates[0]
+    revised = body[:match.start()] + match.group(1) + newop + match.group(2) + target + body[match.end():]
     source.write_text(revised)
     print(f"TRIAL PATCH 0x{address:04X} {oldop.upper()} {target} -> {newop.upper()} {target}")
     return 0
