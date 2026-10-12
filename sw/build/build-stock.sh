@@ -84,5 +84,7 @@ if ! make -C "$WORK" "${MAKE_ARGS[@]}"; then
   exit 1
 fi
 
-python3 "$SW/build/verify-rom.py" "$SW/Elf2K-alternate.hex" "$WORK/Elf2K-alternate.hex"
+if [[ "${ELF2K_COMPARE_REFERENCE:-1}" == "1" ]]; then
+  python3 "$SW/build/verify-rom.py" "$SW/Elf2K-alternate.hex" "$WORK/Elf2K-alternate.hex"
+fi
 printf "\nBuilt ROM: %s\n" "$WORK/Elf2K-alternate.hex"
