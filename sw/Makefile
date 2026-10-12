@@ -44,6 +44,12 @@ PLATFORM ?= PicoElf
 ALTERNATE ?=
 -include config.$(PLATFORM)$(ALTERNATE)
 
+# AVI first-stage build: reuse Elf2K compile conditionals to resolve common
+# monitor symbols. This is NOT compatible device I/O and is NOT hardware-safe.
+ifeq ($(PLATFORM),AVIElf2)
+AVI_PLATFORM_COMPAT = -DELF2K
+endif
+
 #   This "subroutine" (don't know what else to call it!) converts its argument
 # to upper case.  You'd think there would be a built in function for this, but
 # no, at least not in GNU Make.  It's a bit brute force, but it works!
@@ -53,13 +59,13 @@ UC = $(subst a,A,$(subst b,B,$(subst c,C,$(subst d,D,$(subst e,E,$(subst f,F,$(s
 TASM ?= tasm
 TASMTABS ?=
 export TASMTABS
-TASMOPTS ?= -t1802 -la -g0 -i -DTASM -D$(call UC,$(PLATFORM)) -DSTGROM
+TASMOPTS ?= -t1802 -la -g0 -i -DTASM -D$(call UC,$(PLATFORM)) $(AVI_PLATFORM_COMPAT) -DSTGROM
 ASM02 ?= asm02
-ASMOPTS ?= -i -L -s -D$(call UC,$(PLATFORM)) -DSTGROM
+ASMOPTS ?= -i -L -s -D$(call UC,$(PLATFORM)) $(AVI_PLATFORM_COMPAT) -DSTGROM
 RCASM ?= rcasm
 RCASM_DIR ?= $(dir $(RCASM))
 export RCASM_DIR
-RCASMOPTS ?= -v -h -l -x -d1802 -D$(call UC,$(PLATFORM)) -DSTGROM
+RCASMOPTS ?= -v -h -l -x -d1802 -D$(call UC,$(PLATFORM)) $(AVI_PLATFORM_COMPAT) -DSTGROM
 ROMMERGE ?= rommerge
 ROMCKSUM ?= romcksum
 ROMTEXT ?= romtext
