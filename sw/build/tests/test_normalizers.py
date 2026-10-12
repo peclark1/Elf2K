@@ -112,6 +112,28 @@ class Asm02IncludeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unquoted"):
             transform('#include "ops.inc"\n', prepare_asm02)
 
+    def test_known_upstream_orphan_removed(self) -> None:
+        source = (
+            "exit: sep scall\n"
+            "      sep r0 ; exit\n"
+            "#endif\n"
+            "\n"
+            "#ifdef ANYROM\n"
+            "asm: nop\n"
+            "#endif\n"
+        )
+        result = transform(source, prepare_asm02)
+        self.assertNotIn("sep r0 ; exit\n#endif", result)
+        self.assertEqual(result.count("#endif"), 1)
+
+    def test_other_orphan_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unexpected unmatched"):
+            transform("nop\n#endif\n", prepare_asm02)
+
+    def test_unclosed_conditional_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unclosed"):
+            transform("#ifdef STGROM\nnop\n", prepare_asm02)
+
 
 if __name__ == "__main__":
     unittest.main()
