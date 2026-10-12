@@ -16,6 +16,10 @@ def transform(source: str, fn=normalize_source) -> str:
     with tempfile.TemporaryDirectory() as temporary:
         path = pathlib.Path(temporary) / "input.asm"
         path.write_text(source, encoding="utf-8")
+        (path.parent / "config.inc").write_text(
+            "#define RAMPAGE 07F00H\n#define VISUAL 0B100H\n",
+            encoding="utf-8",
+        )
         fn(path)
         return path.read_text(encoding="utf-8")
 
@@ -107,6 +111,13 @@ class Asm02IncludeTests(unittest.TestCase):
         source = "   include ../bios.inc  ; relocated\n"
         first = transform(source, prepare_asm02)
         self.assertEqual(transform(first, prepare_asm02), first)
+
+    def test_stock_constants_are_expanded_in_secondary_defines(self) -> None:
+        source = "#define CODE VISUAL\n#define DATA RAMPAGE-0100h\n"
+        self.assertEqual(
+            transform(source, prepare_asm02),
+            "#define CODE 0B100H\n#define DATA 07F00H-0100h\n",
+        )
 
     def test_quoted_asm02_include_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "unquoted"):
