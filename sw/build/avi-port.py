@@ -119,7 +119,7 @@ def port_boots(path: Path) -> None:
                          "\tLBNZ\tNVRL3\t\t; wait for it to clear")
     # Opt-in hardware UART. BOOTS always defaults to bit-banged serial
     # on reset so incorrect jumpers cannot make the system unbootable.
-    cmd = '\\tCMD(4, "CONTINUE", CONTINUE)'
+    cmd = 'CMDTBL:\tCMD(4, "CONTINUE", CONTINUE)'
     s = substitute_exact(s, cmd, cmd + '\n#ifdef AVIELF2\n'
         + '\\tCMD(3, "UART", AVIUART)\n#endif')
     end_marker = '; The table always ends with a zero byte...'
