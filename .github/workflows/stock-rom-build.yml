@@ -34,4 +34,9 @@ jobs:
             .build/stock-rom/work/*.hex
             .build/stock-rom/work/*.lst
             .build/stock-rom/work/config.inc
+            .build/stock-rom/work/*.asm
+            .build/stock-rom/work/*.inc
+            .build/deps/asm02/asm.c
+            .build/deps/asm02/header.h
+            .build/deps/asm02/Makefile
           if-no-files-found: ignore
