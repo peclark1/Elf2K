@@ -443,3 +443,8 @@ ROM. Do not alter stock `config.Elf2K-alternate`.
 5. Decide the first freed ROM region.
 6. Add a minimal `TBASIC` loader before changing cassette support.
 7. Once Tiny BASIC runs reliably, analyze the Giant Board cassette routines and implement the Hyperboard-compatible save/load path.
+
+
+## 15. Current AVI-specific implementation milestone
+
+As reassessed by the owner/coordinator on 2026-10-12, historical stock ROM byte-for-byte reconstruction is not a dependency of the custom AVI image. The first distinct configuration is `sw/config.AVIElf2`, producing `AVIElf2.hex` through an isolated pinned Linux build. The initial component selection, allocation, remaining hardware risks, and deterministic CI verification are maintained in [AVI_ROM_IMPLEMENTATION_STATUS.md](AVI_ROM_IMPLEMENTATION_STATUS.md). This first image is explicitly build-only, retaining temporary Elf2K monitor/BIOS conditional compatibility; it is not a CDP1854 port and is not EEPROM-ready. No merge is authorized.
