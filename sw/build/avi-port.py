@@ -34,6 +34,10 @@ include config.inc
 #define SERSEQ          seq
 #define SERREQ          req
 #define BASE            0f000h
+; IDE registers remain referenced by unreachable legacy code. Compile-only
+; constants: the AVI monitor disables IDE boot and access vectors.
+#define IDE_SELECT       2
+#define IDE_DATA         3
 #else
 """ + original.split("#define STGROM", 1)[1].rsplit("#endif", 1)[0] + """#endif
 #endif"""
