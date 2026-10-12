@@ -103,6 +103,8 @@ def port_boots(path: Path) -> None:
     # even as ROM allocation differs from the stock Elf2K image.
     s = substitute_exact(s, "\tBZ\tNVRL2\t\t; wait for it to set",
                          "\tLBZ\tNVRL2\t\t; wait for it to set")
+    s = substitute_exact(s, "\tBNZ\tNVRL3\t\t; wait for it to clear",
+                         "\tLBNZ\tNVRL3\t\t; wait for it to clear")
     # Disable commands that knowingly touch Elf2K IDE, RTC or NVR
     # hardware. INPUT/OUTPUT remain available to test COM2 explicitly.
     forbidden = {"BOOT", "NVR", "IDE", "DATE", "RESTART", "CPU", "TERMINAL"}
