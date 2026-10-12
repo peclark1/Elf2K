@@ -71,7 +71,16 @@ python3 "$SW/build/normalize-rcasm-include.py" "$WORK/bios.inc"
 # newer so GNU make does not rebuild it with the Rc/Asm-only include form.
 touch "$WORK/boots.hex"
 
-make -C "$WORK" "${MAKE_ARGS[@]}"
+if ! make -C "$WORK" "${MAKE_ARGS[@]}"; then
+  # Rc/Asm and Asm/02 redirect diagnostics to .lst; surface them in CI logs.
+  for listing in "$WORK"/*.lst; do
+    if grep -Eiq 'error|not found|undefined' "$listing"; then
+      printf '\n== Diagnostics from %s ==\n' "$listing" >&2
+      grep -Ei 'error|not found|undefined' "$listing" | tail -n 60 >&2 || true
+    fi
+  done
+  exit 1
+fi
 
 python3 "$SW/build/verify-rom.py" "$SW/Elf2K-alternate.hex" "$WORK/Elf2K-alternate.hex"
 printf "\nBuilt ROM: %s\n" "$WORK/Elf2K-alternate.hex"
