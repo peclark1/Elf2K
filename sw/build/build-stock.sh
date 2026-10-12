@@ -32,17 +32,6 @@ for src in bios.asm xmodem.asm sedit.asm edtasm.asm forth.asm; do
   python3 "$SW/build/normalize-rcasm.py" "$WORK/$src"
 done
 
-# VISUAL/02 assumes Riley's old sibling-repository checkout layout
-# and mixes RcAsm-style INCLUDE with Asm/02's #include form.
-cp "$DEPS/visual02/visual02.asm" "$WORK/visual02.asm"
-cp "$DEPS/elfops/include/ops.inc" "$WORK/ops.inc"
-python3 "$SW/build/prepare-asm02-source.py" "$WORK/visual02.asm"
-# Catch missing/malformed relocated includes before Asm/02 opens NULL handles.
-grep -qF '#include ops.inc' "$WORK/visual02.asm"
-grep -qF '#include bios.inc' "$WORK/visual02.asm"
-grep -qF '#include config.inc' "$WORK/visual02.asm"
-test -f "$WORK/ops.inc"
-
 MAKE_ARGS=(
   PLATFORM=Elf2K
   ALTERNATE=-alternate
@@ -59,6 +48,18 @@ MAKE_ARGS=(
 # boots.asm is assembled by TASM and needs Riley's original bios.inc syntax.
 # Build it first, while bios.inc is pristine.
 make -C "$WORK" "${MAKE_ARGS[@]}" boots.hex
+
+# config.inc now exists: expand only its constants in the Asm/02 copy.
+# VISUAL/02 assumes Riley's old sibling-repository checkout layout
+# and mixes RcAsm-style INCLUDE with Asm/02's #include form.
+cp "$DEPS/visual02/visual02.asm" "$WORK/visual02.asm"
+cp "$DEPS/elfops/include/ops.inc" "$WORK/ops.inc"
+python3 "$SW/build/prepare-asm02-source.py" "$WORK/visual02.asm"
+# Catch missing/malformed relocated includes before Asm/02 opens NULL handles.
+grep -qF '#include ops.inc' "$WORK/visual02.asm"
+grep -qF '#include bios.inc' "$WORK/visual02.asm"
+grep -qF '#include config.inc' "$WORK/visual02.asm"
+test -f "$WORK/ops.inc"
 
 # The Rc/Asm components include the same bios.inc. Public Rc/Asm has trouble
 # with the historical label/EQU include syntax even though its preprocessor
