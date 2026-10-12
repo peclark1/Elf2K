@@ -9,6 +9,7 @@ import unittest
 BUILD = pathlib.Path(__file__).resolve().parents[1]
 normalize_source = runpy.run_path(str(BUILD / "normalize-rcasm.py"))["normalize"]
 normalize_include = runpy.run_path(str(BUILD / "normalize-rcasm-include.py"))["normalize"]
+prepare_asm02 = runpy.run_path(str(BUILD / "prepare-asm02-source.py"))["normalize"]
 
 
 def transform(source: str, fn=normalize_source) -> str:
@@ -75,6 +76,41 @@ class RcAsmNormalizerTests(unittest.TestCase):
     def test_bios_non_equ_unchanged(self) -> None:
         source = "include config.inc\n"
         self.assertEqual(transform(source, normalize_include), source)
+
+
+
+class Asm02IncludeTests(unittest.TestCase):
+    def test_stock_visual02_includes(self) -> None:
+        source = (
+            "#include ../ops.inc\n"
+            "#ifdef STGROM\n"
+            "include config.inc\n"
+            "include    ../bios.inc\n"
+            "#endif\n"
+        )
+        self.assertEqual(
+            transform(source, prepare_asm02),
+            (
+                "#include ops.inc\n"
+                "#ifdef STGROM\n"
+                "#include config.inc\n"
+                "#include bios.inc\n"
+                "#endif\n"
+            ),
+        )
+
+    def test_non_stg_conditional_include_remains(self) -> None:
+        source = "#ifdef ELFOS\n#include ../Elfos/kernel.inc\n#endif\n"
+        self.assertEqual(transform(source, prepare_asm02), source)
+
+    def test_include_conversion_idempotent(self) -> None:
+        source = "   include ../bios.inc  ; relocated\n"
+        first = transform(source, prepare_asm02)
+        self.assertEqual(transform(first, prepare_asm02), first)
+
+    def test_quoted_asm02_include_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unquoted"):
+            transform('#include "ops.inc"\n', prepare_asm02)
 
 
 if __name__ == "__main__":
