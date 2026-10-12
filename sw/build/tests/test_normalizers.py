@@ -17,7 +17,7 @@ def transform(source: str, fn=normalize_source) -> str:
         path = pathlib.Path(temporary) / "input.asm"
         path.write_text(source, encoding="utf-8")
         (path.parent / "config.inc").write_text(
-            "#define RAMPAGE 07F00H\n#define VISUAL 0B100H\n",
+            "#define RAMPAGE 07F00H\n#define VISUAL 0B100H\n#define BIOS 0FF00H\n#define EBIOS 0F800H\n",
             encoding="utf-8",
         )
         (path.parent / "bios.inc").write_text(
@@ -129,16 +129,20 @@ class Asm02IncludeTests(unittest.TestCase):
             "#endif\n"
         )
         result = transform(source, prepare_asm02)
-        self.assertIn("#define FTYPE (BIOS+03h)", result)
-        self.assertIn("#define FINMSG (BIOS+66h)", result)
-        self.assertIn("#define FMSG (BIOS+09h)", result)
-        self.assertIn("#define FINPUT (BIOS+0fh)", result)
+        self.assertIn("#define FTYPE (0FF00H+03h)", result)
+        self.assertIn("#define FINMSG (0FF00H+66h)", result)
+        self.assertIn("#define FMSG (0FF00H+09h)", result)
+        self.assertIn("#define FINPUT (0FF00H+0fh)", result)
         self.assertIn("asm: mov r0,EDTASM+3", result)
 
-    def test_asm02_bios_config_macro_resolution(self) -> None:
-        source = "#define f_initcall (BIOS+3fh)\n"
-        result = transform(source, prepare_asm02)
-        self.assertEqual(result, source)  # bios.inc requires BIOS from stock config
+    def test_stgrom_aliases_are_not_duplicated_on_second_pass(self) -> None:
+        source = (
+            "#ifdef STGROM\n"
+            "#define DATA RAMPAGE-0100h\n"
+            "#endif\n"
+        )
+        first = transform(source, prepare_asm02)
+        self.assertEqual(transform(first, prepare_asm02), first)
 
     def test_stock_constants_are_expanded_in_secondary_defines(self) -> None:
         source = "#define CODE VISUAL\n#define DATA RAMPAGE-0100h\n"
