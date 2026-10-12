@@ -95,6 +95,14 @@ def port_boots(path: Path) -> None:
 #endif
 
 ;   And lastly, if there is a NVR/CMOS""")
+    # Page-align the EF status display's short branches. ROM positioning
+    # changes in the AVI image can make otherwise-nearby branches cross
+    # a 256-byte page, which 1802 short branches cannot do.
+    s = substitute_exact(s, "SHOWEF:\\n", "        PAGE\\nSHOWEF:\\n")
+    # Keep obsolete NVR logic unreachable, but make its small loop valid
+    # even as ROM allocation differs from the stock Elf2K image.
+    s = substitute_exact(s, "\\tBZ\\tNVRL2\\t\\t; wait for it to set",
+                         "\\tLBZ\\tNVRL2\\t\\t; wait for it to set")
     # Disable commands that knowingly touch Elf2K IDE, RTC or NVR
     # hardware. INPUT/OUTPUT remain available to test COM2 explicitly.
     forbidden = {"BOOT", "NVR", "IDE", "DATE", "RESTART", "CPU", "TERMINAL"}
@@ -103,7 +111,12 @@ def port_boots(path: Path) -> None:
     for line in s.splitlines(keepends=True):
         match = re.search(r'\bCMD\(\d+,\s*"([^"]+)"', line)
         if match and match.group(1) in forbidden and not line.lstrip().startswith(";"):
-            line = ";" + line
+            # Preserve table labels on the first entries of disabled tables.
+            tablabel = re.match(r"^([A-Z_0-9]+:)(.*)$", line)
+            if tablabel:
+                line = tablabel.group(1) + "\\n;" + tablabel.group(2)
+            else:
+                line = ";" + line
             count += 1
         lines.append(line)
     if count < 8:
