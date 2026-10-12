@@ -78,7 +78,7 @@ def port_boots(path: Path) -> None:
         OUTI(LEDS,$18)""")
     # After printing memory status/copyright, omit IDE enumeration,
     # clock and historical autonomous boot flags.
-    s = substitute_exact(s, "\tOUTSTR(RIGHTS)\t; type the copyright notices",
+    s = substitute_exact(s, "\tOUTSTR(RIGHTS)\t\t; type the copyright notices",
                           """\tOUTSTR(RIGHTS)\t; type the copyright notices
 #ifdef AVIELF2
         LBR     MAIN0       ; first AVI bench test: enter monitor
@@ -90,7 +90,7 @@ def port_boots(path: Path) -> None:
 """)
     s = substitute_exact(s, "TTYAU1:\tRLDI(DP,BAUD1)\t; (F_SETBD trashes DP!)",
                          "TTYAU1:\tRLDI(DP,BAUD1)\t; (F_SETBD trashes DP!)")
-    anchor = "\tSTR\tDP\t; ...\n\n;   And lastly, if there is a NVR/CMOS"
+    anchor = "\tSTR\tDP\t\t; ...\n\n;   And lastly, if there is a NVR/CMOS"
     s = substitute_exact(s, anchor, """\tSTR\tDP\t; ...
 #ifdef AVIELF2
         RETURN             ; no nonvolatile RAM on Hyperboard
