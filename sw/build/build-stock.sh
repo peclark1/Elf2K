@@ -41,38 +41,7 @@ sed -i -e 's|#include ../ops.inc|#include ops.inc|' \
        -e 's|include[[:space:]]*../bios.inc|include bios.inc|' \
        "$WORK/visual02.asm"
 # Fail with a useful message rather than passing a missing include to Asm/02.
-grep -qE '^[[:space:]]*#include[[:space:]]+ops[.]inc[[:space:]]*=(
-  PLATFORM=Elf2K
-  ALTERNATE=-alternate
-  TASM="$DEPS/stg-tools/tasm35/tasm"
-  TASMTABS="$DEPS/stg-tools/tasm35/tables"
-  ASM02="$DEPS/asm02/asm02"
-  RCASM="$DEPS/rcasm/rcasm"
-  RCASM_DIR="$DEPS/rcasm/"
-  ROMMERGE="$DEPS/stg-tools/rommerge/rommerge"
-  ROMCKSUM="$DEPS/stg-tools/romcksum/romcksum"
-  ROMTEXT="$DEPS/stg-tools/romtext/romtext"
-)
-
-# boots.asm is assembled by TASM and needs Riley's original bios.inc syntax.
-# Build it first, while bios.inc is pristine.
-make -C "$WORK" "${MAKE_ARGS[@]}" boots.hex
-
-# The Rc/Asm components include the same bios.inc. Public Rc/Asm has trouble
-# with the historical label/EQU include syntax even though its preprocessor
-# handles the same constants cleanly. Convert only this disposable Rc/Asm copy
-# after TASM has consumed the original include.
-python3 "$SW/build/normalize-rcasm-include.py" "$WORK/bios.inc"
-
-# bios.inc is now newer than boots.hex. Mark the already verified TASM output
-# newer so GNU make does not rebuild it with the Rc/Asm-only include form.
-touch "$WORK/boots.hex"
-
-make -C "$WORK" "${MAKE_ARGS[@]}"
-
-python3 "$SW/build/verify-rom.py" "$SW/Elf2K-alternate.hex" "$WORK/Elf2K-alternate.hex"
-printf "\nBuilt ROM: %s\n" "$WORK/Elf2K-alternate.hex"
- "$WORK/visual02.asm"
+grep -qE '^[[:space:]]*#include[[:space:]]+ops[.]inc[[:space:]]*$' "$WORK/visual02.asm"
 test -f "$WORK/ops.inc"
 
 MAKE_ARGS=(
