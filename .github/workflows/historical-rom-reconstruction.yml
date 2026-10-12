@@ -1,0 +1,74 @@
+name: Historical stock ROM reconstruction (isolated)
+
+on:
+  push:
+    branches:
+      - experiment/stock-rom-historical-reconstruction
+  workflow_dispatch:
+
+jobs:
+  historical-reconstruction:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify production inputs remain frozen
+        run: |
+          git diff --exit-code 8df2d5b2bc0a512316c192fdbe1a6906fbc406e8 HEAD -- \
+            sw/Elf2K-alternate.hex sw/config.Elf2K-alternate sw/build/prepare-deps.sh \
+            sw/Makefile sw/build/build-stock.sh sw/build/reproduce-stock.sh
+          test "$(git hash-object sw/Elf2K-alternate.hex)" = e1a14af17671dae2b051b53a7ae186d639e7f5b9
+          printf '%s  %s\n' db8d5148b7cb507613a20b28dc31abfce1b1f500cb69a8c2e348cfaea2ab6a4b sw/Elf2K-alternate.hex | sha256sum -c
+      - name: Install reproducible build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y build-essential git python3
+      - name: Validate syntax and established regressions
+        run: |
+          bash -n sw/build/build-stock.sh sw/build/reproduce-stock.sh sw/build/probe-reconstruction-extensions.sh
+          python3 -m py_compile sw/build/audit-historical-reconstruction.py
+          python3 -m unittest discover -s sw/build/tests -v
+      - name: Preserve strict reference mismatch, reproduce two independent builds
+        run: |
+          set +e
+          bash sw/build/reproduce-stock.sh >.build-reconstruction-baseline.log 2>&1
+          status=$?
+          set -e
+          tail -n 60 .build-reconstruction-baseline.log
+          if [[ "$status" -ne 1 ]]; then echo "Unexpected reference gate status: $status"; exit 1; fi
+          grep -q 'INDEPENDENT BUILD RESULT: MATCH' .build-reconstruction-baseline.log
+          grep -q 'STOCK REFERENCE RESULT: MISMATCH' .build-reconstruction-baseline.log
+          grep -q 'MISMATCH (10441 differing bytes)' .build-reconstruction-baseline.log
+          mkdir -p .build/historical-reconstruction
+          cp .build-reconstruction-baseline.log .build/historical-reconstruction/canonical-baseline.log
+      - name: Audit historical pinned source and preassembled release artifacts
+        run: |
+          python3 sw/build/audit-historical-reconstruction.py \
+            --reference sw/Elf2K-alternate.hex \
+            --stock-work .build/stock-rom-repro/first/work \
+            --archive .build/deps/stgrom-archive/bios \
+            --output .build/historical-reconstruction
+      - name: Re-run controlled archived-source and branch probes in disposable tree
+        run: |
+          bash sw/build/probe-source-compat.sh > .build/historical-reconstruction/known-trials.log 2>&1
+          tail -n 105 .build/historical-reconstruction/known-trials.log
+      - name: Explore archived EDTASM workspace and bounded BIOS lookahead
+        run: |
+          bash sw/build/probe-reconstruction-extensions.sh > .build/historical-reconstruction/new-trials.log 2>&1
+          cat .build/historical-reconstruction/new-trials.log
+      - name: Reconfirm untouched reference and pinned configuration after trials
+        run: |
+          test "$(git hash-object sw/Elf2K-alternate.hex)" = e1a14af17671dae2b051b53a7ae186d639e7f5b9
+          git status --short
+          test -z "$(git status --porcelain --untracked-files=normal | grep -v '^?? .build' || true)"
+      - name: Upload all forensic evidence, never deployable ROM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-historical-source-trials
+          path: |
+            .build/historical-reconstruction/**
+            .build/stock-compat-probes/**
+            .build/stock-rom-repro/first/work/*.lst
+            .build/stock-rom-repro/first/work/config.inc
+            .build/stock-rom-repro/reference-byte-differences.csv
+            .build/stock-rom-repro/independent-build-compare.txt
+          if-no-files-found: warn
