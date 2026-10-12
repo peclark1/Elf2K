@@ -37,6 +37,8 @@ p.write_text(s)
 PY
 
 cp "$DEPS/stgrom-archive/bios"/bios.asm "$DEPS/stgrom-archive/bios"/bios.inc "$WORK/"
+# Apply AVI-only hardware-port safety guards to disposable sources.
+python3 "$SW/build/avi-port.py" "$WORK"
 cp "$DEPS/stgrom-archive/bios"/rcbasic.asm "$WORK/"
 cp "$DEPS/stgrom-archive/bios"/xmodem.asm "$WORK/"
 cp "$DEPS/edtasm"/edtasm.asm "$WORK/"
