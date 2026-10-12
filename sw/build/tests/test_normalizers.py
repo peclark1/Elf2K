@@ -32,7 +32,7 @@ class RcAsmNormalizerTests(unittest.TestCase):
         result = transform("\tinclude\tbios.inc\t ; old include comment\n")
         lines = result.splitlines()
         self.assertEqual(len(lines), 2)
-        self.assertEqual(lines[0].strip(), "include        bios.inc")
+        self.assertEqual(lines[0].strip(), "include bios.inc")
         self.assertEqual(lines[1], "; old include comment")
 
     def test_plain_include_and_preprocessor_include_unchanged(self) -> None:
