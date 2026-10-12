@@ -4,16 +4,23 @@ on:
   push:
     branches:
       - feature/avi-elf2-hyperboard-rom
+      - fix/stock-elf2k-build
   pull_request:
   workflow_dispatch:
 
 jobs:
   build-stock-alternate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install build prerequisites
         run: sudo apt-get update && sudo apt-get install -y build-essential git python3
+      - name: Regression tests for source normalizers
+        run: python3 -m unittest discover -s sw/build/tests -v
+      - name: Record untouched reference identity
+        run: |
+          git hash-object sw/Elf2K-alternate.hex
+          sha256sum sw/Elf2K-alternate.hex
       - name: Build and verify stock Elf2K-alternate ROM
         run: ./sw/build/build-stock.sh
       - name: Upload generated ROM and listings
