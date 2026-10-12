@@ -29,6 +29,28 @@ Rc/Asm, Asm/02, and the omitted Riley sources. It builds
 compares the generated 32 KiB byte stream with the checked-in known-working
 `sw/Elf2K-alternate.hex`.
 
+## Independent clean-build reproduction and regression tests
+
+Run from the repository root (these scripts may be invoked with Bash even
+when their executable mode has not been preserved by GitHub's contents API):
+
+```sh
+python3 -m unittest discover -s sw/build/tests -v
+bash sw/build/reproduce-stock.sh
+```
+
+The reproducer verifies the reference Git blob and SHA-256, then builds twice
+in separate freshly cleared directories under `.build/stock-rom-repro/`.
+Both builds share pinned toolchain sources but never generated objects or ROM
+files. It compares the decoded 32 KiB images against each other and the stock
+reference. Full comparison output is retained in `.build/stock-rom-repro/*.txt`.
+
+**Current checkpoint (2026-10-12):** both independent builds assemble and
+match each other exactly, but differ from the stock reference in **10,477**
+bytes. The verifier exits nonzero intentionally: this is NOT an accepted
+stock baseline. See `docs/STOCK_ELF2K_REPRODUCIBILITY_REPORT.md` for
+SHA-256 hashes, component differences, pinned tools, and review questions.
+
 ## Modernization kept deliberately small
 
 The stock configuration files and ROM memory map are unchanged. The Makefile
