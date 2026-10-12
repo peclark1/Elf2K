@@ -79,3 +79,48 @@ probe edtasm edtasm-stg-data-1000 A400 B100 rcasm
 probe bios bios-short-no-uart F300 10000 rcasm
 probe visual02 visual02-zero-traps B100 C200 asm02
 echo "The official stock build and unchanged reference comparison remain authoritative."
+
+
+# ARCHIVED STOCK-SOURCE TRIALS: one disposable component at a time.
+# Use the already pinned archive, without changing configuration, tools,
+# software selections, original ROM, or any production source pins.
+ARCHIVE="$DEPS/stgrom-archive/bios"
+ARCHIVE_SHA="1d5f8b2bb4295d83a6ac35db06c43c7eb009ec34"
+[[ "$(git -C "$DEPS/stgrom-archive" rev-parse HEAD)" == "$ARCHIVE_SHA" ]] || {
+    echo "Archive not at the pinned SHA; refusing trials" >&2
+    exit 1
+}
+
+archive_trial() {
+    local source="$1" component="$2" start="$3" end="$4" variant="$5"
+    local trial="$OUT/archive-$variant"
+    echo "======= ARCHIVED STOCK-SOURCE TRIAL: $variant ======="
+    rm -rf "$trial"
+    mkdir -p "$trial"
+    cp "$WORK/config.inc" "$WORK/bios.inc" "$trial/"
+    cp "$ARCHIVE/$source.asm" "$trial/$component.asm"
+    if ! python3 "$ROOT/sw/build/normalize-rcasm.py" "$trial/$component.asm" >"$trial/prepare.log" 2>&1; then
+        echo "SOURCE PREPARATION FAILED: $variant"
+        cat "$trial/prepare.log"
+        return 0
+    fi
+    local -a options=(-v -h -l -x -d1802 -DELF2K -DSTGROM)
+    if [[ "$component" == forth ]]; then options+=(-DNO_BLOAD); fi
+    if ! (cd "$trial" && "$DEPS/rcasm/rcasm" "${options[@]}" "$component.asm" >"$component.lst" 2>&1) || [[ ! -s "$trial/$component.hex" ]]; then
+        echo "ASSEMBLER FAILED OR NO HEX: $variant"
+        tail -n 16 "$trial/$component.lst" 2>/dev/null || true
+        return 0
+    fi
+    if python3 "$ROOT/sw/build/compare-component.py" "$REF" "$trial/$component.hex" "$start" "$end" >"$trial/comparison.txt" 2>&1; then
+        echo "EXACT COMPONENT MATCH: $variant"
+    else
+        echo "COMPONENT DIFFERENCES REMAIN: $variant"
+    fi
+    sed -n '1,9p' "$trial/comparison.txt"
+}
+archive_trial edtasm edtasm A400 B100 edtasm
+archive_trial visual02 visual02 B100 C200 visual02
+archive_trial forth0 forth DC00 F000 forth0
+archive_trial forth1 forth DC00 F000 forth1
+archive_trial bios bios F300 10000 bios
+echo "Archived component trials complete; production pins and reference unchanged."
