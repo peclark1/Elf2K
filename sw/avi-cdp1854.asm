@@ -74,6 +74,7 @@ avi_tx_wait:
         ani     080h           ; THRE status bit 7
         lbz     avi_tx_wait
         irx                    ; point to saved character
+        ldx                    ; restore D: BIOS F_READ must return the received character after echo
         out     2              ; CDP1854 transmitter holding register
         dec     r2             ; OUT increments R(X): restore stack
         sep     sret
