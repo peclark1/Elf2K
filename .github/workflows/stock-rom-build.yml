@@ -1,0 +1,28 @@
+name: Stock Elf2K ROM build
+
+on:
+  push:
+    branches:
+      - feature/avi-elf2-hyperboard-rom
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-stock-alternate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y build-essential git python3
+      - name: Build and verify stock Elf2K-alternate ROM
+        run: ./sw/build/build-stock.sh
+      - name: Upload generated ROM and listings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Elf2K-alternate-build
+          path: |
+            .build/stock-rom/work/*.hex
+            .build/stock-rom/work/*.lst
+            .build/stock-rom/work/config.inc
+          if-no-files-found: ignore

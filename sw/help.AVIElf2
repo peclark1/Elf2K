@@ -1,0 +1,32 @@
+# AVI ELF II / Hyperboard bench-test ROM. Q/EF default, optional 1854.
+# Comments beginning with # are ignored by romtext.
+AVI ELF II / HYPERBOARD - BENCH TEST ROM
+Start: Q/EF3 serial console, press CR at 2400 baud.
+UART command changes to experimental CDP1854 COM2 9600 8N1.
+A RESET returns to Q/EF3; see docs/AVI_FIRST_BENCH_TEST.md.
+
+PROGRAM CONTROL
+    CALL addr               -- SCRT call
+    RUN [addr]              -- execute with P=0
+    CONT[inue]              -- resume from break
+
+LANGUAGES (PENDING REAL HARDWARE TEST)
+    BAS[ic] [NEW|OLD]      -- rc/BASIC Level 2
+    ASM [NEW|OLD]         -- editor/assembler
+
+MEMORY / I-O
+    E[xamine] addr [end]   -- read memory
+    D[eposit] addr data..  -- change memory
+    IN[put] port           -- read 1802 I/O port
+    OU[tput] port data     -- write 1802 I/O port
+    :llaaaattdddd..cc      -- Intel HEX upload
+
+DIAGNOSTICS
+    UART                   -- EXPERIMENTAL CDP1854 9600 8N1
+    SH[ow] EF              -- read EF1..EF4
+    TE[st] RAM            -- RAM test
+    HEL[p]                 -- this text
+
+NOT IMPLEMENTED: Tiny BASIC, cassette, Visual/02, Forth.
+RTC/NVR, IDE/BOOT and 8250-UART paths are disabled.
+Before UART: verify Hyperboard jumpers and 1854/1863 clocks.

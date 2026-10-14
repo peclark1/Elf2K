@@ -1,0 +1,34 @@
+name: AVI ELF II ROM development build
+
+on:
+  push:
+    branches:
+      - feature/avi-elf2-hyperboard-rom
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-avi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install prerequisites
+        run: sudo apt-get update && sudo apt-get install -y build-essential git python3
+      - name: Build AVIElf2 image and verify layout/checksum
+        run: ELF2K_BUILD_DIR="$GITHUB_WORKSPACE/.build/avi-pass1" bash sw/build/build-avi.sh
+      - name: Independently repeat clean AVI build
+        run: ELF2K_BUILD_DIR="$GITHUB_WORKSPACE/.build/avi-pass2" bash sw/build/build-avi.sh
+      - name: Require byte-identical repeat builds
+        run: |
+          cmp .build/avi-pass1/work/AVIElf2.hex .build/avi-pass2/work/AVIElf2.hex
+          python3 sw/build/verify-avi.py .build/avi-pass2/work/AVIElf2.hex
+      - name: Upload development artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AVIElf2-development
+          path: |
+            .build/avi-pass1/work/*.hex
+            .build/avi-pass1/work/*.lst
+            .build/avi-pass1/work/config.inc
+          if-no-files-found: ignore
