@@ -82,7 +82,7 @@ HEXFILES = $(strip							\
 	     boots.hex bios.hex $(if $(VIDEO), video.hex)		\
 	     $(if $(SEDIT), sedit.hex) $(if $(FORTH), forth.hex)	\
 	     $(if $(EDTASM), edtasm.hex) $(if $(BASIC), rcbasic.hex)	\
-	     $(if $(VISUAL), visual02.hex) $(if $(XMODEM), xmodem.hex)	\
+	     $(if $(VISUAL), visual02.hex) $(if $(XMODEM), xmodem.hex) $(if $(GIANT), giantboard.hex)	\
 	     $(if $(HELP), help.hex)					\
 	   )
 LISTFILES = $(HEXFILES:.hex=.lst)
