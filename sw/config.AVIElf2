@@ -1,29 +1,24 @@
-# AVI ELF II / Hyperboard 32K ROM; PRELIMINARY BUILD-ONLY CONFIGURATION.
-# Distinct from the stock Elf2K and PicoElf configurations.
-# A first-stage selection, not authorization to program an EEPROM.
+# AVI ELF II / Hyperboard 32 KiB ROM — Netronics-compatible experiment.
+# Approved architecture: docs/AVI_NETRONICS_ROM_APPROVED_DESIGN.md
+# Reversible development only. Do not overwrite the proven 875B One ROM.
 #
-# CPU logical address     Size    Content
-# $8000-$97FF             6144    BOOTS monitor
-# $9800-$A0FF             2304    AVI-specific HELP
-# $A100-$A3FF              768    reserved (SEDIT omitted)
-# $A400-$B0FF             3328    EDTASM
-# $B100-$C1FF             4352    RESERVED (Visual/02 assembler crashes; deferred)
-# $C200-$DBFF             6656    rc/BASIC L2
-# $DC00-$EFFF             5120    reserved (Forth omitted)
-# $F000-$F2FF              768    XMODEM
-# $F300-$FFFF             3328    EBIOS / BIOS
+# CPU logical ROM address   Allocated     Component
+# $8000-$97FF               6144 bytes    AVI / Elf2K monitor
+# $9800-$A0FF               2304 bytes    AVI HELP
+# $A100-$A3FF                768 bytes    reserved
+# $A400-$B0FF               3328 bytes    EDTASM (XMODEM S/L disabled)
+# $B100-$C1FF               4352 bytes    reserved
+# $C200-$EFFF              11776 bytes    reserved for future services
+# $F000-$F0FF                256 bytes    ORIGINAL GIANT MONITOR, unchanged
+# $F100-$F2FF                512 bytes    reserved
+# $F300-$FFFF               3328 bytes    extended BIOS/BIOS
 #
-# Proposed subdivision (NOT populated or committed to as ABI):
-# $DC00-$E9AF: Netronics Tiny BASIC ROM payload (3504 B)
-# $E9B0-$E9FF: alignment (80 B)
-# $EA00-$EBFF: Tiny BASIC loader budget (512 B)
-# $EC00-$EFFF: cassette / AVI helpers budget (1024 B)
+# COM1 bit-banged Q/EF4 default, nominal 2400. Requires EF4 hardware jumper.
+# COM2 CDP1854 is optional: 9600 8N1 presently proven.
+# COM2 19200/38400 deliberately REJECTED pending clock/hardware validation.
+# Netronics Tiny BASIC executes separately from RAM starting at $0000.
 #
-# HISTORICAL VARIANT: remove rc/BASIC + XMODEM; Giant Monitor at F000.
-# Q/EF4 default requires matching physical EF4 jumper and BIOS build.
-# CDP1854 UART backend NOT IMPLEMENTED: inherited monitor/BIOS still
-# contains Elf2K 8250/RTC/NVR/IDE assumptions.  CDP1854/CDP1863 port
-# mapping is NOT VERIFIED.  This scaffold must not be used on hardware.
+# This configuration affects ONLY the AVI variant; stock Elf2K builds intact.
 BOOTS=08000H
 WARMB=($(strip $(BOOTS))+3)
 RAMPAGE=07F00H
@@ -33,6 +28,3 @@ BIOS=0FF00H
 EBIOS=0F800H
 EDTASM=0A400H
 GIANT=0F000H
-# VISUAL=0B100H  # deferred: pinned Asm-02 segfaults in CI
-
-# Deliberately disabled: VIDEO, PIXIE, SEDIT, FORTH, VISUAL.
