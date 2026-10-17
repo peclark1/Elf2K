@@ -23,7 +23,7 @@ MEMORY / I-O
     E[xamine] addr [end]   -- read memory
     D[eposit] addr data..  -- change bytes
     HEX addr               -- interactive raw hexadecimal byte loader
-      Enter space-separated bytes; dot (.) line ends.
+      Bytes; optional hhhh: addresses; dot (.) ends.
     :llaaaattdddd..cc      -- Intel HEX record loader
     IN[put] port           -- read 1802 I/O port
     OU[tput] port data     -- write 1802 I/O port
