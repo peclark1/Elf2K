@@ -154,8 +154,16 @@ AVICLDCHK:
         GHI P4
         SMI $7F
         LBDF AVICRANGE
+        ; Preserve mode across BIOS F_READ, which may use scratch R8.
+        RLDI(DP,RESTA)
+        GLO 8
+        STR DP
         OUTSTR(AVICLDMSG)
         CALL(F_READ)            ; begin PLAY before typing a key
+        RLDI(DP,RESTA)
+        LDN DP
+        PLO 8
+        RLDI(DP,RAMPAGE)
         RCOPY(T2,P3)
         RCOPY(INTPC,P4)
         INC INTPC
