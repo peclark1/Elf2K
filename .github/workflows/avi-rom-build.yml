@@ -23,6 +23,8 @@ jobs:
         run: |
           cmp .build/avi-pass1/work/AVIElf2.hex .build/avi-pass2/work/AVIElf2.hex
           python3 sw/build/verify-avi.py .build/avi-pass2/work/AVIElf2.hex
+      - name: Prepare labelled One ROM diagnostic binary and Intel HEX
+        run: python3 sw/build/prepare-one-rom.py .build/avi-pass1/work/AVIElf2.hex .build/avi-pass1/work
       - name: Upload development artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -32,4 +34,6 @@ jobs:
             .build/avi-pass1/work/*.hex
             .build/avi-pass1/work/*.lst
             .build/avi-pass1/work/config.inc
+            .build/avi-pass1/work/*.bin
+            .build/avi-pass1/work/README-Netronics-OneROM-EXPERIMENTAL.txt
           if-no-files-found: ignore
