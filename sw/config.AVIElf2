@@ -13,6 +13,8 @@
 # $F100-$F2FF                512 bytes    reserved
 # $F300-$FFFF               3328 bytes    extended BIOS/BIOS
 #
+# CDP1861/PIXIE test enabled; original Weisbecker bitmap substituted
+# in disposable AVI assembler input by avi-port.py.
 # COM1 bit-banged Q/EF4 default, nominal 2400. Requires EF4 hardware jumper.
 # COM2 CDP1854 is optional: 9600 8N1 presently proven.
 # COM2 19200/38400 deliberately REJECTED pending clock/hardware validation.
@@ -28,3 +30,4 @@ BIOS=0FF00H
 EBIOS=0F800H
 EDTASM=0A400H
 GIANT=0F000H
+PIXIE=1
