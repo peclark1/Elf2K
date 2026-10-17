@@ -65,7 +65,9 @@ def validate(path: Path) -> None:
         raise ValueError("AVI startup banner not assembled into monitor")
     if bytes([3]) + b"UART\x00" not in monitor:
         raise ValueError("UART monitor command dispatch not present")
-    if rom[0x7000:0x7008] != bytes.fromhex("90A1B3B4B5B6B7F8"):\n        raise ValueError("Original Giant Monitor signature missing at CPU F000")\n    if bytes.fromhex("650063196399") not in extended_bios:
+    if rom[0x7000:0x7008] != bytes.fromhex("90A1B3B4B5B6B7F8"):
+        raise ValueError("Original Giant Monitor signature missing at CPU F000")
+    if bytes.fromhex("650063196399") not in extended_bios:
         raise ValueError("CDP1863/CDP1854 control sequence missing")
     # romcksum -c32764: physical 7FFC/7FFD correction, 7FFE/7FFF
     # checksum. Sum is calculated after clearing these four bytes.
