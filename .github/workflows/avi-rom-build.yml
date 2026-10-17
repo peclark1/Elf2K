@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/avi-elf2-hyperboard-rom
+      - feature/avi-netronics-compatible-rom
   pull_request:
   workflow_dispatch:
 
