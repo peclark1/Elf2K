@@ -7,11 +7,11 @@ import sys
 
 SIZE = 32768
 BASE = 0x8000
-RESERVED = ((0xA100, 0xA400, "SEDIT"), (0xB100, 0xC200, "Visual/02 deferred"), (0xDC00, 0xF000, "Tiny BASIC / AVI"))
+RESERVED = ((0xA100, 0xA400, "SEDIT"), (0xB100, 0xC200, "Visual/02 deferred"), (0xC200, 0xF000, "future services / RAM-loaded Tiny BASIC"), (0xF100, 0xF300, "reserved after Giant Monitor"))
 ACTIVE = (
     (0x8000, 0x9800, "monitor"), (0x9800, 0xA100, "AVI help"),
     (0xA400, 0xB100, "EDTASM"),
-    (0xC200, 0xDC00, "rc/BASIC"), (0xF000, 0xF300, "XMODEM"),
+    (0xF000, 0xF100, "original Giant Monitor"),
     (0xF300, 0x10000, "BIOS"),
 )
 
@@ -65,7 +65,7 @@ def validate(path: Path) -> None:
         raise ValueError("AVI startup banner not assembled into monitor")
     if bytes([3]) + b"UART\x00" not in monitor:
         raise ValueError("UART monitor command dispatch not present")
-    if bytes.fromhex("650063196399") not in extended_bios:
+    if rom[0x7000:0x7008] != bytes.fromhex("90A1B3B4B5B6B7F8"):\n        raise ValueError("Original Giant Monitor signature missing at CPU F000")\n    if bytes.fromhex("650063196399") not in extended_bios:
         raise ValueError("CDP1863/CDP1854 control sequence missing")
     # romcksum -c32764: physical 7FFC/7FFD correction, 7FFE/7FFF
     # checksum. Sum is calculated after clearing these four bytes.
