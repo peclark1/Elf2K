@@ -61,7 +61,7 @@ def validate(path: Path) -> None:
     # distinct CDP1854 mode-1 9600 8N1 initialization sequence.
     monitor = rom[0x0000:0x1800]
     extended_bios = rom[0x7300:0x7800]
-    if b"AVI ELF II " not in monitor:
+    if b"Pete\'s ELF II Monitor" not in monitor:
         raise ValueError("AVI startup banner not assembled into monitor")
     if bytes([3]) + b"UART\x00" not in monitor:
         raise ValueError("UART monitor command dispatch not present")
