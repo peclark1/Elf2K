@@ -19,6 +19,8 @@
 # $EA00-$EBFF: Tiny BASIC loader budget (512 B)
 # $EC00-$EFFF: cassette / AVI helpers budget (1024 B)
 #
+# HISTORICAL VARIANT: remove rc/BASIC + XMODEM; Giant Monitor at F000.
+# Q/EF4 default requires matching physical EF4 jumper and BIOS build.
 # CDP1854 UART backend NOT IMPLEMENTED: inherited monitor/BIOS still
 # contains Elf2K 8250/RTC/NVR/IDE assumptions.  CDP1854/CDP1863 port
 # mapping is NOT VERIFIED.  This scaffold must not be used on hardware.
@@ -30,8 +32,7 @@ HELP=09800H
 BIOS=0FF00H
 EBIOS=0F800H
 EDTASM=0A400H
+GIANT=0F000H
 # VISUAL=0B100H  # deferred: pinned Asm-02 segfaults in CI
-BASIC=0C200H
-XMODEM=0F000H
 
 # Deliberately disabled: VIDEO, PIXIE, SEDIT, FORTH, VISUAL.
