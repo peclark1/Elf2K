@@ -139,7 +139,7 @@ AVICLDNUM:
         CALL(ISEOL)
         LBNF CMDERR
         LDI 0
-        PLO XX                  ; R8.0 = 0, fixed range
+        PLO 8                  ; R8.0 = 0, fixed range
         LBR AVICLDCHK
 AVICLDTB:
         CALL(ISEOL)
@@ -147,7 +147,7 @@ AVICLDTB:
         RLDI(P3,$0000)
         RLDI(P4,$0FFF)          ; first transfer first 4 KiB
         LDI 1
-        PLO XX                  ; 1 = extend dynamically at $1000
+        PLO 8                  ; 1 = extend dynamically at $1000
 AVICLDCHK:
         CALL(P3LEP4)
         LBNF CMDERR
@@ -193,7 +193,7 @@ AVICLDBIT:
         INC T2
         ; TBASIC format is headerless. At 4K the now-loaded Tiny
         ; BASIC MEND/SPARE specifies whether more bytes follow.
-        GLO XX
+        GLO 8
         LBZ AVICLDNEXT
         GHI T2
         XRI $10
