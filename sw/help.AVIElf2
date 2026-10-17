@@ -1,32 +1,40 @@
-# AVI ELF II / Hyperboard bench-test ROM. Q/EF default, optional 1854.
-# Comments beginning with # are ignored by romtext.
-AVI ELF II / HYPERBOARD - BENCH TEST ROM
-Start: Q/EF3 serial console, press CR at 2400 baud.
-UART command changes to experimental CDP1854 COM2 9600 8N1.
-A RESET returns to Q/EF3; see docs/AVI_FIRST_BENCH_TEST.md.
+# AVI ELF II / Hyperboard — Netronics-compatible development ROM.
+# Comments beginning with # ignored by romtext.
+AVI ELF II / NETRONICS-COMPATIBLE ROM (EXPERIMENTAL)
+Default: COM1 Q/EF4 2400 baud; press CR for autobaud.
+COM2 optional: CDP1854 UART 9600 8N1 on ports 2/3.
+Change COM1 physical receiver jumper to EF4 BEFORE using this ROM.
+
+SERIAL CONSOLE
+    COM1  or  1            -- Q/EF4 COM1, re-autobaud on return
+    COM2  or  2            -- CDP1854 COM2 at 9600 baud
+    COM2 9600 / 2 9600    -- explicit supported rate
+    COM2 19200 / 38400    -- CLOCK MODIFICATION REQUIRED (rejected)
+    UART                   -- alias for COM2
 
 PROGRAM CONTROL
-    CALL addr               -- SCRT call
-    RUN [addr]              -- execute with P=0
-    CONT[inue]              -- resume from break
-
-LANGUAGES (PENDING REAL HARDWARE TEST)
-    BAS[ic] [NEW|OLD]      -- rc/BASIC Level 2
-    ASM [NEW|OLD]         -- editor/assembler
+    CALL addr              -- SCRT call
+    RUN [addr]             -- execute with P=0
+    CONT[inue]             -- resume from breakpoint
+    ASM [NEW|OLD]          -- editor/assembler
+    RUN F000               -- ORIGINAL 256-BYTE GIANT MONITOR
 
 MEMORY / I-O
     E[xamine] addr [end]   -- read memory
-    D[eposit] addr data..  -- change memory
+    D[eposit] addr data..  -- change bytes
+    HEX addr               -- interactive raw hexadecimal byte loader
+      Enter space-separated bytes; dot (.) line ends.
+    :llaaaattdddd..cc      -- Intel HEX record loader
     IN[put] port           -- read 1802 I/O port
     OU[tput] port data     -- write 1802 I/O port
-    :llaaaattdddd..cc      -- Intel HEX upload
 
 DIAGNOSTICS
-    UART                   -- EXPERIMENTAL CDP1854 9600 8N1
     SH[ow] EF              -- read EF1..EF4
-    TE[st] RAM            -- RAM test
+    TE[st] RAM             -- RAM test
     HEL[p]                 -- this text
 
-NOT IMPLEMENTED: Tiny BASIC, cassette, Visual/02, Forth.
-RTC/NVR, IDE/BOOT and 8250-UART paths are disabled.
-Before UART: verify Hyperboard jumpers and 1854/1863 clocks.
+Original Giant Monitor cassette uses Q / EF2 and original keypad.
+Tiny BASIC separately loaded to RAM 0000; not included in ROM.
+Original rc/BASIC and XMODEM omitted from this variant.
+Do not claim 19200/38400 without clock modifications and tests.
+BUILD VALIDATION DOES NOT EQUAL BENCH VALIDATION.
