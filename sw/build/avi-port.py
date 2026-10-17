@@ -113,7 +113,7 @@ def port_boots(path: Path) -> None:
     # Netronics COM1 receives serial data on EF4, normally idle high.
     # The stock PIXIE test loops for idle-low keypad EF4; in this variant,
     # loop while COM1 idles high and quit on a PC serial start bit.
-    s = substitute_exact(s, "BN4\tPIXIE1\t; or break when INPUT is pressed",
+    s = substitute_exact(s, "BN4\tPIXIE1\t\t; or break when INPUT is pressed",
                          "B4\tPIXIE1\t; exit when EF4 COM1 RX falls")
     s = substitute_exact(s, "[Toggle INPUT to end]",
                          "[Send a character on COM1 to end]")
