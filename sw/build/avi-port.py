@@ -85,6 +85,38 @@ def port_boots(path: Path) -> None:
     s = substitute_exact(s,
         '\t.TEXT\t"ElfOS BIOS Copyright (C) 2004-2020 by Mike Riley.\\r\\n"',
         '')
+    # Historic 1977 Enterprise artwork, not STG's replacement top banner.
+    # Source: Popular Electronics July 1977 Table I ($0000-$003F) and
+    # original Netronics manual Table II ($0040-$00FF); the latter is
+    # already present verbatim in the inherited NCC1701 bitmap.
+    start_marker = "; SPARE TIME GIZMOS..."
+    end_marker = "; The original NCC1701 starts here...."
+    if s.count(start_marker) != 1 or s.count(end_marker) != 1:
+        raise RuntimeError("original PIXIE graphic anchors changed")
+    a = s.index(start_marker)
+    b = s.index(end_marker)
+    first_64 = [
+        "    .DB " + $90,$B1,$B2,$B3,$B4,$F8,$2D,$A3",
+        "    .DB " + $F8,$3F,$A2,$F8,$11,$A1,$D3,$72",
+        "    .DB " + $70,$22,$78,$22,$52,$C4,$C4,$C4",
+        "    .DB " + $F8,$00,$B0,$F8,$00,$A0,$80,$E2",
+        "    .DB " + $E2,$20,$A0,$E2,$20,$A0,$E2,$20",
+        "    .DB " + $A0,$3C,$1E,$30,$0F,$E2,$69,$3F",
+        "    .DB " + $2F,$6C,$A4,$37,$33,$3F,$35,$6C",
+        "    .DB " + $54,$14,$30,$33,$00,$00,$00,$00",
+    ]
+    original_bitmap = (
+        "; ORIGINAL COSMAC ELF JULY 1977 - FIRST 64 DISPLAY BYTES\n"
+        + "\n".join(first_64) + "\n\n"
+    )
+    s = s[:a] + original_bitmap + s[b:]
+    # Netronics COM1 receives serial data on EF4, normally idle high.
+    # The stock PIXIE test loops for idle-low keypad EF4; in this variant,
+    # loop while COM1 idles high and quit on a PC serial start bit.
+    s = substitute_exact(s, "BN4\tPIXIE1\t; or break when INPUT is pressed",
+                         "B4\tPIXIE1\t; exit when EF4 COM1 RX falls")
+    s = substitute_exact(s, "[Toggle INPUT to end]",
+                         "[Send a character on COM1 to end]")
     # Self-checks for ROM and RAM remain intact; bypass only absent
     # DS1287, 8250, PPI, speaker, PS/2 POST sequences.
     s = substitute_exact(s, "DPDONE:\n", """DPDONE:
