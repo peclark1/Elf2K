@@ -31,6 +31,8 @@ MEMORY / I-O
 DIAGNOSTICS
     SH[ow] EF              -- read EF1..EF4
     TE[st] RAM             -- RAM test
+    TE[st] PIXIE           -- original 1977 COSMAC/Enterprise bitmap
+                              Use COM1 serial key to exit (EF4 receiver)
     HEL[p]                 -- this text
 
 Original Giant Monitor cassette uses Q / EF2 and original keypad.
