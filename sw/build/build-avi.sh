@@ -13,7 +13,7 @@ rm -rf "$WORK"
 mkdir -p "$WORK"
 cp "$SW/Makefile" "$WORK/"
 cp "$SW"/boots.asm "$SW"/boots.inc "$SW"/hardware.inc "$WORK/"
-cp "$SW"/config.AVIElf2 "$SW"/help.AVIElf2 "$WORK/"
+cp "$SW"/config.AVIElf2 "$SW"/help.AVIElf2 "$SW"/giantboard.hex "$WORK/"
 
 # Omitting SEDIT/Forth changes code placement. The original one-page BZ
 # in SHOW CPU can then cross a page. Fix only the disposable AVI copy:
@@ -39,8 +39,6 @@ PY
 cp "$DEPS/stgrom-archive/bios"/bios.asm "$DEPS/stgrom-archive/bios"/bios.inc "$WORK/"
 # Apply AVI-only hardware-port safety guards to disposable sources.
 python3 "$SW/build/avi-port.py" "$WORK"
-cp "$DEPS/stgrom-archive/bios"/rcbasic.asm "$WORK/"
-cp "$DEPS/stgrom-archive/bios"/xmodem.asm "$WORK/"
 cp "$DEPS/edtasm"/edtasm.asm "$WORK/"
 
 # EDTASM's optional 'V' command unconditionally references Visual/02.
@@ -61,7 +59,7 @@ p.write_text(s)
 PY
 
 
-for src in bios.asm xmodem.asm edtasm.asm; do
+for src in bios.asm edtasm.asm; do
   python3 "$SW/build/normalize-rcasm.py" "$WORK/$src"
 done
 
