@@ -67,13 +67,30 @@ def main() -> None:
     p.add_argument("output_dir", type=Path)
     a = p.parse_args()
     assembled = from_hex(a.input_hex)
-    if assembled[0x9B:0x9E] != bytes.fromhex("64 98 F8"):
-        raise SystemExit("Unexpected ROMCHK at CPU $809B. Refusing patch.")
+    # ROM title length changes shift labels in BOOTS. Locate both POST
+    # signatures in the emitted machine code; never use a stale $809B/$80C9.
+    def unique_signature(pattern: bytes, label: str) -> int:
+        window = assembled[:0x1000]
+        position = window.find(pattern)
+        if position < 0 or window.find(pattern, position + 1) >= 0:
+            raise SystemExit(f"{label} machine-code signature absent/ambiguous")
+        return position
+    romchk = unique_signature(bytes.fromhex("E0 64 98 F8 80"),
+                              "ROMCHK POST 98 / RLDI P1 BOOTS") + 1
+    sizmem = unique_signature(bytes.fromhex("E0 64 89"),
+                              "SIZMEM POST 89")
+    target = 0x8000 + sizmem
+    if not (0x8000 <= target < 0x8800):
+        raise SystemExit("SIZMEM is outside expected early ROM region")
+    old_instruction = assembled[romchk:romchk + 3]
+    if old_instruction != bytes.fromhex("64 98 F8"):
+        raise SystemExit("ROMCHK patch does not match validated instruction bytes")
+    replacement = bytes([0xC0, target >> 8, target & 0xFF])
     patched = bytearray(assembled)
-    patched[0x9B:0x9E] = bytes.fromhex("C0 80 C9")
+    patched[romchk:romchk + 3] = replacement
     stamp(patched)
     diff = [i for i, (old, new) in enumerate(zip(assembled, patched)) if old != new]
-    allowed = {0x9B,0x9C,0x9D,0x7FFC,0x7FFD,0x7FFE,0x7FFF}
+    allowed = set(range(romchk, romchk+3)) | {0x7FFC,0x7FFD,0x7FFE,0x7FFF}
     if not set(diff) <= allowed:
         raise SystemExit("Unexpected patch outside approved bytes")
     a.output_dir.mkdir(parents=True, exist_ok=True)
@@ -87,7 +104,8 @@ def main() -> None:
         "Set COM1 physical RX jumper to EF4 before testing this image.\n"
         "COM2 9600 supported; 19200/38400 safely rejected.\n"
         "One ROM test image bypasses the unresolved startup ROM checksum scan.\n"
-        "Patch at CPU $809B-$809D: 64 98 F8 -> C0 80 C9.\n"
+        f"Patch at CPU ${0x8000+romchk:04X}-${0x8000+romchk+2:04X}: "
+        + old_instruction.hex().upper() + " -> " + replacement.hex().upper() + "\n"
         "Physical byte diff: " + ", ".join(f"{i:04X}" for i in diff) + "\n"
         "New checksum " + bytes(patched[-2:]).hex().upper() + "\n"
         "Assembled SHA256 " + hashlib.sha256(assembled).hexdigest() + "\n"
