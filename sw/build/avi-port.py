@@ -169,7 +169,9 @@ def port_boots(path: Path) -> None:
         + '\tCMD(1, "1", AVICOM1)\n'
         + '\tCMD(1, "2", AVICOM2)\n'
         + '\tCMD(3, "UART", AVICOM2)\n'
-        + '\tCMD(3, "HEX", AVIHEX)\n#endif')
+        + '\tCMD(3, "HEX", AVIHEX)\n'
+        + '\tCMD(4, "CASSAVE", AVICASSAVE)\n'
+        + '\tCMD(4, "CASLOAD", AVICASLOAD)\n#endif')
     end_marker = "; The table always ends with a zero byte...\n\t.DB\t0"
     if s.count(end_marker) != 1:
         raise RuntimeError("missing primary command table terminator")
@@ -193,7 +195,12 @@ def port_boots(path: Path) -> None:
         lines.append(line)
     if count < 8:
         raise RuntimeError(f"expected >=8 absent-hardware commands, got {count}")
-    path.write_text("".join(lines))
+    s = "".join(lines)
+    # Cassette service is linked into the unused C200 ROM region. Stock
+    # BOOTS and original Giant monitor remain byte-for-byte unmodified.
+    s = substitute_exact(s, "\t.END",
+                         '\t.ORG $C200\n\t.INCLUDE "avi-cassette.asm"\n\t.END')
+    path.write_text(s)
 
 def main() -> None:
     if len(sys.argv) != 2:
