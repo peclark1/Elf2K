@@ -14,6 +14,7 @@ mkdir -p "$WORK"
 cp "$SW/Makefile" "$WORK/"
 cp "$SW"/boots.asm "$SW"/boots.inc "$SW"/hardware.inc "$WORK/"
 cp "$SW"/config.AVIElf2 "$SW"/help.AVIElf2 "$SW"/giantboard.hex "$WORK/"
+cp "$SW"/avi-cassette.asm "$WORK/"
 
 # Omitting SEDIT/Forth changes code placement. The original one-page BZ
 # in SHOW CPU can then cross a page. Fix only the disposable AVI copy:
