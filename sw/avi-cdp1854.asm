@@ -4,7 +4,7 @@
 ; sw/build/avi-port.py, replacing the stock 8250/16550 UART implementation.
 ;
 ; This is an experimental 9600 8N1 backend, activated only with the monitor
-; UART command. Startup and recovery remain on the proven Q/EF3 console.
+; UART command. This ROM variant starts on Q/EF4. The Q/EF3 875B baseline remains separate.
 ;
 ; Hardware assumptions to verify:
 ;   CDP1854 MODE=1; CS1=N1; RSEL=N0; CS3 asserted; CS2 controlled by J14.
