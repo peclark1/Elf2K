@@ -55,6 +55,18 @@ for before, after in changes:
     if s.count(before) != 1:
         raise SystemExit("Expected EDTASM Visual/02 hook: " + before)
     s = s.replace(before, after)
+# The stock editor/assembler still has S/L commands backed by XMODEM.
+# Keep the historical text editor but disable those two entry points instead
+# of letting either jump into the new Giant Monitor or unpopulated F100.
+import re
+for label in ("save", "load"):
+    pattern = re.compile(r"(?m)^" + label + r":")
+    if len(pattern.findall(s)) != 1:
+        raise SystemExit("Expected one EDTASM " + label + " entry")
+    s = pattern.sub(label + ":\n        lbr     mainlp     ; disabled: XMODEM omitted in AVI", s)
+# XMODEM symbols are still referenced by unreachable code. Bind them to an
+# unused address only in this disposable editor copy, never in config.inc.
+s = "#define XMODEM 0f100h\n" + s
 p.write_text(s)
 PY
 
