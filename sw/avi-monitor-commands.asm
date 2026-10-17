@@ -55,7 +55,7 @@ AVIU96:  CALL(ISEOL)
 ;   0200> F8 00 B1 F8 20 A1
 ;   0206> ...
 ;   020C> .
-; For unambiguous input only bytes are accepted (no address labels).
+; An optional four-digit address prefix must end with a colon.
 ; RE/START location RESTA is reclaimed for the scratch write pointer:
 ; SET RESTART is disabled on AVI. The buffer still belongs to the monitor.
 AVIHEX: CALL(SCANP1)
@@ -87,6 +87,27 @@ AVIHXL: RLDI(DP,RESTA)
         LDN P1
         XRI '.'
         LBZ AVIHXDONE
+; Optional explicit address prefix, e.g. "0200: F8 01 B1".
+; A four-digit byte run without a colon still means ordinary data bytes.
+        RCOPY(P4,P1)
+        CALL(GHEX4)
+        LBNF AVIHXNOADDR
+        LDN P1
+        XRI ':'
+        LBNZ AVIHXNOADDR
+        INC P1
+        GHI P2
+        SMI $7F
+        LBDF AVIHXER
+        RLDI(DP,RESTA)
+        GHI P2
+        STR DP
+        INC DP
+        GLO P2
+        STR DP
+        LBR AVIHXB
+AVIHXNOADDR:
+        RCOPY(P1,P4)
 AVIHXB: CALL(F_LTRIM)
         CALL(ISEOL)
         LBDF AVIHXL
