@@ -77,6 +77,14 @@ def port_boots(path: Path) -> None:
     # Distinctive banner, without changing the stock historical source.
     s = substitute_exact(s, r'COSMAC ELF 2000 \000', r"Pete's ELF II Monitor\000")
     s = substitute_exact(s, 'INLMES(" EPROM V")', 'INLMES(" V")')
+    # Only the AVI disposable build omits the startup credit text.
+    # Underlying license/source files are NOT modified.
+    s = substitute_exact(s,
+        'RIGHTS:\t.TEXT\t"Copyright (C) 2004-2020 by Spare Time Gizmos.  All rights reserved.\\r\\n"',
+        'RIGHTS:\t.TEXT\t"\\000"')
+    s = substitute_exact(s,
+        '\t.TEXT\t"ElfOS BIOS Copyright (C) 2004-2020 by Mike Riley.\\r\\n"',
+        '')
     # Self-checks for ROM and RAM remain intact; bypass only absent
     # DS1287, 8250, PPI, speaker, PS/2 POST sequences.
     s = substitute_exact(s, "DPDONE:\n", """DPDONE:
@@ -94,7 +102,7 @@ def port_boots(path: Path) -> None:
     # After printing memory status/copyright, omit IDE enumeration,
     # clock and historical autonomous boot flags.
     s = substitute_exact(s, "\tOUTSTR(RIGHTS)\t\t; type the copyright notices",
-                          """\tOUTSTR(RIGHTS)\t; type the copyright notices
+                          """\t; upstream copyright text hidden in AVI startup banner
 #ifdef AVIELF2
         LBR     MAIN0       ; first AVI bench test: enter monitor
 #endif""")
