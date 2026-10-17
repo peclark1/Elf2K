@@ -22,7 +22,7 @@ def port_bios(path: Path) -> None:
     end = s.index("\n#endif", start) + len("\n#endif")
     original = s[start:end]
     # Retain all stock ELF2K paths when built without -DAVIELF2.
-    # AVI uses the already proven Q/EF3 serial path. Don't define UART,
+    # Netronics-compatible AVI uses Q/EF4; the current tested Q/EF3 remains on the baseline branch. Don't define UART,
     # NVR or EIDE because their stock routines are 8250/DS1287/IDE drivers.
     replacement = """#ifdef ELF2K
 include config.inc
@@ -30,8 +30,8 @@ include config.inc
 #ifdef AVIELF2
 #define SERHDX
 #define UART                    ; CDP1854 mode 1, NOT 8250
-#define SERP            b3
-#define SERN            bn3
+#define SERP            b4
+#define SERN            bn4
 #define SERSEQ          seq
 #define SERREQ          req
 #define BASE            0f000h
@@ -99,7 +99,7 @@ def port_boots(path: Path) -> None:
 #endif""")
     s = substitute_exact(s, "TTYINI:\n", """TTYINI:
 #ifdef AVIELF2
-        LBR     TTYAUT      ; Q/EF3 autobaud (UART not yet enabled)
+        LBR     TTYAUT      ; Netronics Q/EF4 autobaud
 #endif
 """)
     anchor = "\tSTR\tDP\t\t; ...\n\n;   And lastly, if there is a NVR/CMOS"
@@ -123,32 +123,16 @@ def port_boots(path: Path) -> None:
     # on reset so incorrect jumpers cannot make the system unbootable.
     cmd = 'CMDTBL:\tCMD(4, "CONTINUE", CONTINUE)'
     s = substitute_exact(s, cmd, cmd + '\n#ifdef AVIELF2\n'
-        + "\tCMD(3, \"UART\", AVIUART)\n#endif")
+        + '\tCMD(4, "COM1", AVICOM1)\n'
+        + '\tCMD(4, "COM2", AVICOM2)\n'
+        + '\tCMD(1, "1", AVICOM1)\n'
+        + '\tCMD(1, "2", AVICOM2)\n'
+        + '\tCMD(3, "UART", AVICOM2)\n'
+        + '\tCMD(3, "HEX", AVIHEX)\n#endif')
     end_marker = "; The table always ends with a zero byte...\n\t.DB\t0"
     if s.count(end_marker) != 1:
         raise RuntimeError("missing primary command table terminator")
-    uart_handler = '''
-#ifdef AVIELF2
-; UART switches to CDP1854/COM2 only after a successful software boot.
-; Hardware must be strapped for OUT 5 divider, OUT/IN 2 data, OUT/IN 3 status.
-AVIUART: CALL(ISEOL)
-        LBNF    CMDERR
-        INLMES("UART 9600 8N1")
-        CALL(TCRLF)
-        LDI     $34
-        CALL(F_USETBD)
-        LBDF    CMDERR
-        RLDI(DP,BAUD1)
-        LDI     $01
-        PHI     BAUD
-        STR     DP
-        INC     DP
-        LDI     $34
-        STR     DP
-        LBR     MAIN
-#endif
-
-'''
+    uart_handler = (Path(__file__).resolve().parent.parent / "avi-monitor-commands.asm").read_text()
     s = substitute_exact(s, end_marker, end_marker + uart_handler)
     # Disable commands that knowingly touch Elf2K IDE, RTC or NVR
     # hardware. INPUT/OUTPUT remain available to test COM2 explicitly.
