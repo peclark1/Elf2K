@@ -9,8 +9,7 @@
 ; currently active console; BIOS F_SETBD then waits for a CR on COM1.
 AVICOM1: CALL(ISEOL)
          LBNF CMDERR
-         INLMES("COM1 Q/EF4: PRESS CR AT 2400")
-         CALL(TCRLF)
+         OUTSTR(AVIC1MSG)
          CALL(TTYAUT)       ; native BIOS autobaud on EF4, Q TX
          LBR MAIN
 
@@ -32,15 +31,13 @@ AVIRATES:
 AVIUUNSUP:
          CALL(ISEOL)
          LBNF CMDERR
-         INLMES("?HIGHER UART BAUD REQUIRES CLOCK CHANGE")
-         CALL(TCRLF)
+         OUTSTR(AVIUNMSG)
          RETURN
 
 ; The original e2k_stbd backend is verified at 9600.
 AVIU96:  CALL(ISEOL)
          LBNF CMDERR
-         INLMES("COM2 UART 9600 8N1")
-         CALL(TCRLF)
+         OUTSTR(AVIC2MSG)
          LDI $34
          CALL(F_USETBD)
          LBDF CMDERR
@@ -122,14 +119,17 @@ AVIHXB: CALL(F_LTRIM)
 AVIHXPOP:
         POPD                   ; keep stack balanced
 AVIHXER:
-        INLMES("?HEX WRITE NOT IN RAM OR VERIFY FAILED")
-        CALL(TCRLF)
+        OUTSTR(AVIHXERRMSG)
         RETURN
 AVIHXBAD:
-        INLMES("?HEX DATA: EXPECT TWO HEX DIGITS")
-        CALL(TCRLF)
+        OUTSTR(AVIHXDATAMSG)
         RETURN
 AVIHXDONE:
         CALL(TCRLF)
         RETURN
+AVIC1MSG: .TEXT "COM1 Q/EF4: PRESS CR AT 2400\r\n\000"
+AVIC2MSG: .TEXT "COM2 UART 9600 8N1\r\n\000"
+AVIUNMSG: .TEXT "?HIGHER UART BAUD REQUIRES CLOCK CHANGE\r\n\000"
+AVIHXERRMSG: .TEXT "?HEX WRITE NOT IN RAM OR VERIFY FAILED\r\n\000"
+AVIHXDATAMSG: .TEXT "?HEX DATA: EXPECT TWO HEX DIGITS\r\n\000"
 #endif
