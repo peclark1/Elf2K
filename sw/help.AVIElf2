@@ -19,15 +19,13 @@ PROGRAM CONTROL
     ASM [NEW|OLD]          -- editor/assembler
     RUN F000               -- ORIGINAL 256-BYTE GIANT MONITOR
 
-CASSETTE (Netronics Giant tape format, Q output / EF2 input)
-    CASSAVE start end      -- record inclusive RAM address range
-    CASLOAD start end      -- restore inclusive RAM address range
-    CASSAVE TBASIC         -- save Tiny BASIC and current BASIC program
-    CASLOAD TBASIC         -- read Tiny BASIC; auto-extend from saved MEND
-    Addresses are hexadecimal; Tiny BASIC image must start at 0000.
-    Terminal prompts precede transfers; tape signals use Q / EF2.
-    Cassette operations cannot use the COM1 serial port simultaneously.
-    CASLOAD overwrites destination RAM.  Keep a backup!
+CASSETTE - Q output / EF2 input; Netronics tape format
+  CASSAVE start end   -- record inclusive RAM range
+  CASLOAD start end   -- restore inclusive RAM range
+  CASSAVE TBASIC      -- save Tiny BASIC + program automatically
+  CASLOAD TBASIC      -- restore Tiny BASIC + program automatically
+  Addresses are hexadecimal. PLAY/RECORD before pressing key.
+  CASLOAD overwrites RAM. Tape transfer cannot be aborted via COM1.
 
 MEMORY / I-O
     E[xamine] addr [end]   -- read memory
