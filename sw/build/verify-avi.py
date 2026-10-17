@@ -7,10 +7,11 @@ import sys
 
 SIZE = 32768
 BASE = 0x8000
-RESERVED = ((0xA100, 0xA400, "SEDIT"), (0xB100, 0xC200, "Visual/02 deferred"), (0xC200, 0xF000, "future services / RAM-loaded Tiny BASIC"), (0xF100, 0xF300, "reserved after Giant Monitor"))
+RESERVED = ((0xA100, 0xA400, "SEDIT"), (0xB100, 0xC200, "Visual/02 deferred"), (0xD000, 0xF000, "reserved after cassette services"), (0xF100, 0xF300, "reserved after Giant Monitor"))
 ACTIVE = (
     (0x8000, 0x9800, "monitor"), (0x9800, 0xA100, "AVI help"),
     (0xA400, 0xB100, "EDTASM"),
+    (0xC200, 0xD000, "AVI cassette monitor service"),
     (0xF000, 0xF100, "original Giant Monitor"),
     (0xF300, 0x10000, "BIOS"),
 )
@@ -63,6 +64,10 @@ def validate(path: Path) -> None:
     extended_bios = rom[0x7300:0x7800]
     if b"Pete\'s ELF II Monitor" not in monitor:
         raise ValueError("AVI startup banner not assembled into monitor")
+    if bytes([4]) + b"CASSAVE\x00" not in monitor:
+        raise ValueError("CASSAVE command not linked into monitor")
+    if bytes([4]) + b"CASLOAD\x00" not in monitor:
+        raise ValueError("CASLOAD command not linked into monitor")
     if bytes([3]) + b"UART\x00" not in monitor:
         raise ValueError("UART monitor command dispatch not present")
     if rom[0x7000:0x7008] != bytes.fromhex("90A1B3B4B5B6B7F8"):
