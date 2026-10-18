@@ -7,7 +7,7 @@
 ; CASSAVE start end       -- raw inclusive RAM range, Giant tape format
 ; CASLOAD start end       -- raw inclusive RAM range, Giant tape format
 ; CASSAVE TBASIC          -- image 0000 through max(0FFF,MEND-SPARE-1)
-; CASLOAD TBASIC          -- read 4K, inspect MEND/SPARE, extend if needed
+; CASLOAD TBASIC          -- derive MEND/SPARE while receiving early header bytes
 ;
 ; No commands run in the Giant Monitor. Historical software remains external.
 ; IMPORTANT: physical tape transport cannot be cancelled through serial.
@@ -139,15 +139,18 @@ AVICLDNUM:
         CALL(ISEOL)
         LBNF CMDERR
         LDI 0
-        PLO 8                  ; R8.0 = 0, fixed range
+        PLO 8                  ; fixed range: no automatic-length steps
+        PHI 8                  ; mode 0, no post-load Tiny BASIC validation
         LBR AVICLDCHK
 AVICLDTB:
         CALL(ISEOL)
         LBNF CMDERR
         RLDI(P3,$0000)
         RLDI(P4,$0FFF)          ; first transfer first 4 KiB
+        LDI $26
+        PLO 8                  ; next cursor $0026 => first length step
         LDI 1
-        PLO 8                  ; 1 = extend dynamically at $1000
+        PHI 8                  ; automatic mode; validate header after transfer
 AVICLDCHK:
         CALL(P3LEP4)
         LBNF CMDERR
@@ -199,17 +202,86 @@ AVICLDBIT:
         GHI P2
         STR T2
         INC T2
-        ; TBASIC format is headerless. At 4K the now-loaded Tiny
-        ; BASIC MEND/SPARE specifies whether more bytes follow.
+        ; Derive the dynamic end address from the bytes received at
+        ; $0017 and $0024-$0025. The original implementation called
+        ; AVITBEND in one uninterrupted burst after $0FFF and lost
+        ; cassette framing, causing a consistent error at $1004.
+        ;
+        ; Each header calculation step below runs after a DIFFERENT
+        ; received byte ($0025-$002A). No lengthy SCRT call occurs
+        ; during continuous reception. The finalized end is used
+        ; before the stream reaches $1000.
         GLO 8
-        LBZ AVICLDNEXT
-        GHI T2
-        XRI $10
-        LBNZ AVICLDNEXT
+        LBZ AVICLDNEXT         ; fixed-length or dynamic end already set
         GLO T2
+        STR SP
+        GLO 8
+        XOR
         LBNZ AVICLDNEXT
-        CALL(AVITBEND)
-        LBDF AVICLDHDR          ; not a parity error: 4K Tiny BASIC header invalid
+        INC 8                  ; advance next checkpoint ($26 -> $2C)
+        GLO 8
+        XRI $27
+        LBZ AVICLDS1
+        GLO 8
+        XRI $28
+        LBZ AVICLDS2
+        GLO 8
+        XRI $29
+        LBZ AVICLDS3
+        GLO 8
+        XRI $2A
+        LBZ AVICLDS4
+        GLO 8
+        XRI $2B
+        LBZ AVICLDS5
+        ; Last step: use derived end exclusively from here onward.
+        RCOPY(INTPC,P4)
+        LDI 0
+        PLO 8
+        LBR AVICLDNEXT
+
+AVICLDS1:
+        ; MEND big-endian at $0024-$0025, now in loaded RAM.
+        RLDI(P1,$0024)
+        LDA P1
+        PHI P4
+        LDN P1
+        PLO P4
+        LBR AVICLDNEXT
+AVICLDS2:
+        ; Subtract the SPARE count. Remember the low-byte no-borrow
+        ; bit in R9.0 since F0BA will overwrite DF on the next byte.
+        RLDI(P1,$0017)
+        LDN P1
+        STR SP
+        GLO P4
+        SM
+        PLO P4
+        LDI 0
+        SHLC
+        PLO T1
+        LBR AVICLDNEXT
+AVICLDS3:
+        GLO T1
+        SHR                    ; restore low-byte no-borrow into DF
+        GHI P4
+        SMBI $00
+        PHI P4
+        LBR AVICLDNEXT
+AVICLDS4:
+        ; Record at least the first 4K, even for a short BASIC image.
+        GHI P4
+        SMI $10
+        LBDF AVICLDNEXT
+        RLDI(P4,$1000)
+        LBR AVICLDNEXT
+AVICLDS5:
+        ; Dynamic end must remain below the monitor's protected page.
+        GHI P4
+        SMI $7F
+        LBDF AVICLDHDR
+        LBR AVICLDNEXT
+
 AVICLDNEXT:
         GLO INTPC
         STR SP
@@ -223,6 +295,13 @@ AVICLDNEXT:
         LBNZ AVICLDWAIT
         INC SP
         RLDI(DP,RAMPAGE)
+        ; Validate Tiny BASIC AFTER the last byte, when the cassette
+        ; reader has stopped; no chance to lose framing during this call.
+        GHI 8
+        LBZ AVICLDOK
+        CALL(AVITBEND)
+        LBDF AVICLDHDR2
+AVICLDOK:
         OUTSTR(AVICDONE)
         RETURN
 AVICLDERR:
@@ -236,11 +315,11 @@ AVICLDERR:
         OUTSTR(AVICPARERR)
         RETURN
 AVICLDHDR:
-        ; After exactly 4K loaded: Tiny BASIC identification or
-        ; MEND/SPARE validation failed. These bytes were already stored
-        ; through $0FFF; T2 will be $1000.
+        ; Header-derived length exceeded protected RAM while sampling.
         INC SP
         RLDI(DP,RAMPAGE)
+AVICLDHDR2:
+        ; Invalid Tiny BASIC identification/pointers after playback.
         RCOPY(P1,T2)
         CALL(THEX4)
         OUTSTR(AVICTBHDRERR)
@@ -322,7 +401,7 @@ AVICDONE:
 AVICPARERR:
         .TEXT " <- CASLOAD PARITY ERROR AT NEXT BYTE\r\n\000"
 AVICTBHDRERR:
-        .TEXT " <- CASLOAD TBASIC HEADER INVALID AFTER 4K\r\n\000"
+        .TEXT " <- CASLOAD TBASIC HEADER INVALID\r\n\000"
 AVICTBMSG:
         .TEXT "?NOT EXPECTED NETRONICS TINY BASIC IMAGE\r\n\000"
 AVICRMSG:
