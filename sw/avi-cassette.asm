@@ -157,13 +157,20 @@ AVICLDCHK:
         GHI P4
         SMI $7F
         LBDF AVICRANGE
-        ; Preserve mode across BIOS F_READ, which may use scratch R8.
+        ; Preserve BOTH bytes of mode/stage R8 across F_READ.
+        ; BIOS input may use R8 as scratch; R8.1 records TBASIC mode,
+        ; R8.0 records the next early-header checkpoint.
         RLDI(DP,RESTA)
+        GHI 8
+        STR DP
+        INC DP
         GLO 8
         STR DP
         OUTSTR(AVICLDMSG)
         CALL(F_READ)            ; begin PLAY before typing a key
         RLDI(DP,RESTA)
+        LDA DP
+        PHI 8
         LDN DP
         PLO 8
         RLDI(DP,RAMPAGE)
