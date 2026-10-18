@@ -1,3 +1,5 @@
+> **2026-10-18 UPDATE — source-level milestone complete:** Both originally scanned *Ipso Facto* #11 and #12 were uploaded by the owner and inspected page-by-page. The Tables 1/2 changes have been **transcribed directly from the page images** and applied to verified RCA VIP base images in the independent `sw/chip8-historical/` directory. Two complete 3584-byte Intel HEX **RAM** images (Four-Squares and Maze) have passed structural/checksum tests and are ready for a **first owner hardware test**. This is not yet a ROM-resident interpreter and has not yet produced a proven display on ELF II hardware. The AVI firmware and cassette baseline have NOT changed.
+
 # Netronics ELF II CHIP-8 ROM Integration — historical-source reconstruction
 
 Status: **research and architecture approved; NO CHIP-8 ROM firmware released**.
@@ -64,4 +66,16 @@ Machine-level requirements:
 4. Place authenticated interpreter image and ROM launcher into existing unused ROM region; validate ROM layout/checksum and preserve fallback cassette image.
 5. Only then test Maze ($0200) and Airplane ($0600), with variant checks; document both on-hardware results.
 
-**Current blocker:** accurately obtain/review listing scan pages with Tables 1–3 before compiling a purported historical interpreter.
+**Current blocker resolved:** uploaded issue #11/#12 scans were inspected. **Next blocker:** actual hardware validation of the full source-reconstructed Netronics test images, including CDP1861 DMA/interrupt and EF4 keypad interaction. ROM integration remains pending.
+
+
+## 2026-10-18 binary/source provenance and test artifacts
+
+- Base RCA VIP ROM: Emma 02 `data/Vip/vip.rom`, 512 bytes, SHA256 `9df7ea9e055b5e4c5a1429bf24c1cb318ef4052977453285424e11ca76b40987`.
+- Base RCA VIP CHIP-8: Emma 02 `data/Vip/chip8.ram`, 512 bytes, SHA256 `699ad707fd9756c10a31c7abbd03b95e28ae04112bd097ab72a62493d358271b`.
+- Owner Maze original first $200 bytes match the archived VIP CHIP-8 image exactly; Maze program remains at $0200–$0221.
+- `sw/chip8-historical/patches.txt` transcribes **232 OS bytes** (Table 1) and **112 CHIP-8 bytes** (Table 2), with `MODE=10` for CHIP-8 startup and Issue 12's $01FA = $9B correction applied; OS map $0C00–$0DFF.
+- `Netronics-1979-CHIP8-Four-Squares.hex`: **3584 bytes $0000–$0DFF**, standalone RAM image, SHA256 of full image `fad5c4c94c5ab06729a4839fa3ec9c6bdee989e8a4cf3f6fd4b5886702b40c76`.
+- `Netronics-1979-CHIP8-Maze.hex`: same range, standalone RAM image, SHA256 `64413915199de49f89d798a2aa6f0f1aa44945b315fe971f7f702643ba3d5c35`.
+- Both images were independently generated twice with matching 16-bit byte sums `09E3` and `0466`; each Intel HEX record verified. Full Python reproducible build and user-supplied original Maze included in owner's test ZIP, whose link is present in the project conversation.
+- Hardware acceptance: send Four-Squares HEX to 2400 8N1 monitor → `EXAMINE 0000 0002` expects `C0 0C 10` → `EXAMINE 01F8 01FF` expects `06 30 9B 00 00 E0 00 4B` → `RUN 0000`. Expect four outlined sprites on CDP1861. Only if stable, reset, load Maze HEX and `RUN 0000`. Do NOT program these RAM HEX files into a 32K ROM.
