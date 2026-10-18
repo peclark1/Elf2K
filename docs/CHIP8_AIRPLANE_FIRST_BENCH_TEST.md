@@ -27,3 +27,11 @@ A second test could move the Airplane program from $0600 to $0200 and rewrite CH
 
 ## Next firmware stage
 After keyboard and video work, integrate ROM-resident CHIP-8 bootstrap as an opt-in monitor command (e.g. `CHIP8 0600`). Preserve existing ROM diagnostics, cassette support and the Giant Monitor. Keep the archival interpreter, firmware adaptation and the owner's game input as distinct, clearly attributed components.
+
+## First bench result and isolation test (2026-10-18)
+
+- On the AVI ELF II, the first combined image (`Airplane-ELF-II-try1-combined.hex`) **did not render an identifiable game**. User's Panasonic monitor showed alternating blocks and a scrambled 64-pixel-wide video region. The CDP1861 is producing output but interpretation/video DMA coherence are not established. Original `TEST PIXIE` had worked previously on this hardware.
+- Exact owner's `Airplane.hex` has a byte-for-byte matching copy in **Emma 02 `data/Chip-8/Chip-8 ETI660 Games/Airplane.hex`**. That identifies the game's original platform as the ETI-660, which uses 64x48 CHIP-8 graphics and games at $0600, rather than the ELF 64x32 or COSMAC VIP 64x32 environment. Source: https://github.com/etxmato/emma_02/blob/master/data/Chip-8/Chip-8%20ETI660%20Games/Airplane.hex . The game appears to use common CHIP-8 instructions; do not conclude platform incompatibility alone caused the image.
+- Prepared **`CHIP8-ELF-II-PIXIE-sanity-test.hex`**, a separate diagnostic combining the unchanged ELF interpreter with simple test data: `$0200:` CHIP-8 CLEAR; four outlined 8x8 sprites at (8,8), (40,8), (8,24), (40,24); stable `JP $0218` idle loop; sprite bytes `FF 81 81 81 81 81 81 FF` at $0300. The graphics diagnostic deliberately avoids ETI-660 code and key input.
+- The next test is to send this new HEX as an Intel HEX text file to the monitor (replaces prior interpreter/game in RAM), then `EXAMINE 0200 0219`, `EXAMINE 0300 0307`, `EXAMINE 0E00 0E0F`, and `RUN 0000`. Expected picture: **four hollow 8x8 squares**, no alternating garbage. If still garbage, prioritize ELF interpreter's display ISR, DMA pointer setup, memory load correctness and VIDEO ON/interrupt assumptions. If squares render, focus on game-specific ETI input/graphics and operation.
+- No ROM changes or hardware re-jumpering until we understand this isolation test. Keep F30A cassette baseline.
