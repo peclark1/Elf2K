@@ -9,7 +9,7 @@ SERIAL CONSOLE
     COM1  or  1            -- Q/EF4 COM1, re-autobaud on return
     COM2  or  2            -- CDP1854 COM2 at 9600 baud
     COM2 9600 / 2 9600    -- explicit supported rate
-    COM2 19200 / 38400    -- CLOCK MODIFICATION REQUIRED (rejected)
+    COM2 19200 / 38400    -- PLANNED; not yet supported
     UART                   -- alias for COM2
 
 PROGRAM CONTROL
@@ -46,5 +46,5 @@ DIAGNOSTICS
 Original Giant Monitor cassette also uses Q / EF2 and original keypad.
 Tiny BASIC separately loaded to RAM 0000; not included in ROM.
 Original rc/BASIC and XMODEM omitted from this variant.
-Do not claim 19200/38400 without clock modifications and tests.
+Higher speeds need clock support and hardware testing.
 BUILD VALIDATION DOES NOT EQUAL BENCH VALIDATION.
