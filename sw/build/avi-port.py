@@ -110,6 +110,15 @@ def port_boots(path: Path) -> None:
         + "\n".join(first_64) + "\n\n"
     )
     s = s[:a] + original_bitmap + s[b:]
+    # The original ELF2K PIXIE test enabled video before printing its
+    # EF1 timing diagnostic and Enterprise caption. CDP1861 DMA then
+    # corrupts Q/EF4 bit-banged serial characters on the AVI board.
+    # EF1 vertical timing is free-running even with the display disabled;
+    # leave video OFF until after all console messages have completed.
+    # The existing PIXCHM path calls INT_ON / PIXIE_ON only after printing.
+    s = substitute_exact(s,
+        "PIXIE0:\tPIXIE_ON\t\t; enable the display ",
+        "PIXIE0:\t; keep video off during terminal diagnostics")
     # Netronics COM1 receives serial data on EF4, normally idle high.
     # The stock PIXIE test loops for idle-low keypad EF4; in this variant,
     # loop while COM1 idles high and quit on a PC serial start bit.
