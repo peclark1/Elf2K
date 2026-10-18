@@ -40,9 +40,15 @@
 #   Set PLATFORM to either "Elf2K" or "PicoElf" for the desired target...
 # Set ALTERNATE to "-alternate" to make the alternate Elf2K EPROM, otherwise
 # set it to a null string for the standard Elf2K or PicoElf EPROMs.
-PLATFORM=PicoElf
-ALTERNATE=
+PLATFORM ?= PicoElf
+ALTERNATE ?=
 -include config.$(PLATFORM)$(ALTERNATE)
+
+# AVI first-stage build: reuse Elf2K compile conditionals to resolve common
+# monitor symbols. This is NOT compatible device I/O and is NOT hardware-safe.
+ifeq ($(PLATFORM),AVIElf2)
+AVI_PLATFORM_COMPAT = -DELF2K
+endif
 
 #   This "subroutine" (don't know what else to call it!) converts its argument
 # to upper case.  You'd think there would be a built in function for this, but
@@ -50,21 +56,24 @@ ALTERNATE=
 UC = $(subst a,A,$(subst b,B,$(subst c,C,$(subst d,D,$(subst e,E,$(subst f,F,$(subst g,G,$(subst h,H,$(subst i,I,$(subst j,J,$(subst k,K,$(subst l,L,$(subst m,M,$(subst n,N,$(subst o,O,$(subst p,P,$(subst q,Q,$(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,$(subst x,X,$(subst y,Y,$(subst z,Z,$1))))))))))))))))))))))))))
 
 # Tool paths and options - you can change these as necessary...
-TASM=/usr/local/bin/tasm/tasm
-export TASMTABS=/usr/local/bin/tasm/
-TASMOPTS=-t1802 -la -g0 -i -DTASM -D$(call UC,$(PLATFORM)) -DSTGROM
-ASM02=/usr/local/bin/tools/asm02
-ASMOPTS=-i -L -s -D$(call UC,$(PLATFORM)) -DSTGROM
-RCASM=/usr/local/bin/rcasm/rcasm
-export RCASM_DIR=/usr/local/bin/rcasm/
-RCASMOPTS=-v -h -l -x -d1802 -D$(call UC,$(PLATFORM)) -DSTGROM
-ROMMERGE=/usr/local/bin/tools/rommerge
-ROMCKSUM=/usr/local/bin/tools/romcksum
-ROMTEXT=/usr/local/bin/tools/romtext
-CPP=/usr/bin/cpp -E 
-ZIP="C:/Program Files/7-Zip/7z.exe"
-ECHO=/usr/bin/echo
-RM=/usr/bin/rm
+TASM ?= tasm
+TASMTABS ?=
+export TASMTABS
+TASMOPTS ?= -t1802 -la -g0 -i -DTASM -D$(call UC,$(PLATFORM)) $(AVI_PLATFORM_COMPAT) -DSTGROM
+ASM02 ?= asm02
+ASMOPTS ?= -i -L -s -D$(call UC,$(PLATFORM)) $(AVI_PLATFORM_COMPAT) -DSTGROM
+RCASM ?= rcasm
+RCASM_DIR ?= $(dir $(RCASM))
+export RCASM_DIR
+RCASMOPTS ?= -v -h -l -x -d1802 -D$(call UC,$(PLATFORM)) $(AVI_PLATFORM_COMPAT) -DSTGROM
+ROMMERGE ?= rommerge
+ROMCKSUM ?= romcksum
+ROMTEXT ?= romtext
+CPP = cpp -E
+RCBASIC_CPPFLAGS ?= -DSTGROM -DLEVEL=2 -I.
+ZIP ?= 7z
+ECHO ?= /bin/echo
+RM ?= /bin/rm
 
 #   Now make a list of all the .HEX files that will be required to build the
 # EPROM image.  Some are obvious, like boots.hex or bios.hex, but others
@@ -73,7 +82,7 @@ HEXFILES = $(strip							\
 	     boots.hex bios.hex $(if $(VIDEO), video.hex)		\
 	     $(if $(SEDIT), sedit.hex) $(if $(FORTH), forth.hex)	\
 	     $(if $(EDTASM), edtasm.hex) $(if $(BASIC), rcbasic.hex)	\
-	     $(if $(VISUAL), visual02.hex) $(if $(XMODEM), xmodem.hex)	\
+	     $(if $(VISUAL), visual02.hex) $(if $(XMODEM), xmodem.hex) $(if $(GIANT), giantboard.hex)	\
 	     $(if $(HELP), help.hex)					\
 	   )
 LISTFILES = $(HEXFILES:.hex=.lst)
@@ -102,7 +111,7 @@ rcbasic.hex:	rcbasic.asm config.inc bios.inc
 	@$(ECHO) -e "\nBuilding rc/BASIC ..."
 #	$(ASM02) $(ASMOPTS) -DLEVEL=2 $< >$(@:.hex=.lst)
 	$(RM) -f temp.asm $@
-	$(CPP) -DSTGROM -DLEVEL=2 -Id:\\elf\\sw\\rcbasic\\ $< >temp.asm
+	$(CPP) $(RCBASIC_CPPFLAGS) $< >temp.asm
 	$(RCASM) $(RCASMOPTS) temp.asm >$(@:.hex=.lst)
 	mv temp.hex $@
 

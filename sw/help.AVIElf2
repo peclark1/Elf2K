@@ -1,0 +1,42 @@
+# AVI ELF II / Hyperboard — Netronics-compatible development ROM.
+# Comments beginning with # ignored by romtext.
+AVI ELF II / NETRONICS-COMPATIBLE ROM (EXPERIMENTAL)
+Default: COM1 Q/EF4 2400 baud; press CR for autobaud.
+
+SERIAL CONSOLE
+    COM1  or  1            -- Q/EF4 COM1, re-autobaud on return
+    COM2  or  2            -- CDP1854 COM2 at 9600 baud
+    COM2 9600 / 2 9600    -- explicit supported rate
+    COM2 19200 / 38400    -- hardware-clock test modes (8N1)
+    UART                   -- alias for COM2
+
+PROGRAM CONTROL
+    CALL addr              -- SCRT call
+    RUN [addr]             -- execute with P=0
+    CONT[inue]             -- resume from breakpoint
+    ASM [NEW|OLD]          -- editor/assembler
+    RUN F000               -- ORIGINAL 256-BYTE GIANT MONITOR
+
+CASSETTE - Q output / EF2 input; Netronics tape format
+  CASSAVE start end   -- record inclusive RAM range
+  CASLOAD start end   -- restore inclusive RAM range
+  CASSAVE TBASIC      -- save Tiny BASIC + program automatically
+  CASLOAD TBASIC      -- restore Tiny BASIC + program automatically
+  Addresses are hexadecimal. PLAY/RECORD before pressing key.
+  CASLOAD overwrites RAM. Tape transfer cannot be aborted via COM1.
+
+MEMORY / I-O
+    E[xamine] addr [end]   -- read memory
+    D[eposit] addr data..  -- change bytes
+    HEX addr               -- interactive raw hexadecimal byte loader
+      Bytes; optional hhhh: addresses; dot (.) ends.
+    :llaaaattdddd..cc      -- Intel HEX record loader
+    IN[put] port           -- read 1802 I/O port
+    OU[tput] port data     -- write 1802 I/O port
+
+DIAGNOSTICS
+    SH[ow] EF              -- read EF1..EF4
+    TE[st] RAM             -- RAM test
+    TE[st] PIXIE           -- original 1977 COSMAC/Enterprise bitmap
+                              Use COM1 serial key to exit (EF4 receiver)
+    HEL[p]                 -- this text

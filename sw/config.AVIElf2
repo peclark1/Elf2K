@@ -1,0 +1,34 @@
+# AVI ELF II / Hyperboard 32 KiB ROM — Netronics-compatible experiment.
+# Approved architecture: docs/AVI_NETRONICS_ROM_APPROVED_DESIGN.md
+# Reversible development only. Do not overwrite the proven 875B One ROM.
+#
+# CPU logical ROM address   Allocated     Component
+# $8000-$97FF               6144 bytes    AVI / Elf2K monitor
+# $9800-$A0FF               2304 bytes    AVI HELP
+# $A100-$A3FF                768 bytes    reserved
+# $A400-$B0FF               3328 bytes    EDTASM (XMODEM S/L disabled)
+# $B100-$C1FF               4352 bytes    reserved
+# $C200-$EFFF              11776 bytes    reserved for future services
+# $F000-$F0FF                256 bytes    ORIGINAL GIANT MONITOR, unchanged
+# $F100-$F2FF                512 bytes    reserved
+# $F300-$FFFF               3328 bytes    extended BIOS/BIOS
+#
+# CDP1861/PIXIE test enabled; original Weisbecker bitmap substituted
+# in disposable AVI assembler input by avi-port.py.
+# COM1 bit-banged Q/EF4 default, nominal 2400. Requires EF4 hardware jumper.
+# COM2 CDP1854 is optional: 9600 8N1 presently proven.
+# COM2 19200/38400 enabled as external-clock test modes; J10/J11 clock must
+# be physically configured for x16 baud (307.2/614.4 kHz), with power OFF.
+# Netronics Tiny BASIC executes separately from RAM starting at $0000.
+#
+# This configuration affects ONLY the AVI variant; stock Elf2K builds intact.
+BOOTS=08000H
+WARMB=($(strip $(BOOTS))+3)
+RAMPAGE=07F00H
+
+HELP=09800H
+BIOS=0FF00H
+EBIOS=0F800H
+EDTASM=0A400H
+GIANT=0F000H
+PIXIE=1
