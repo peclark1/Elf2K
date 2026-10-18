@@ -2,7 +2,7 @@
 ; This file is injected into the disposable TASM boots.asm by avi-port.py.
 ; All original Elf2K source remains unchanged.
 ; COM1 uses Q/EF4 (physical J15 must be configured accordingly).
-; COM2 is a fixed 9600 baud CDP1854 until higher clock sources are verified.
+; COM2 UART 8N1: 9600 tested; 19200/38400 are external-clock bench modes.
 
 #ifdef AVIELF2
 ; Console switch to Q/EF4 bitbang. The confirmation is emitted on the
@@ -22,23 +22,31 @@ AVICOM2: CALL(F_LTRIM)
          LBR COMND
 AVIRATES:
          CMD(4, "9600", AVIU96)
-         CMD(5, "19200", AVIUUNSUP)
-         CMD(5, "38400", AVIUUNSUP)
+         CMD(5, "19200", AVIU19)
+         CMD(5, "38400", AVIU38)
          .DB 0
 
-; The hardware jumpers provide the UART clocks. A command cannot
-; magically change J10/J11. Do NOT overclock via software guessing.
-AVIUUNSUP:
-         CALL(ISEOL)
+; All baud choices operate the SAME 8N1 CDP1854 driver. The UART has
+; external 16x TCLK/RCLK: CDP1863/4040 wiring determines real baud.
+; 9600 is known working. Higher selections are honest hardware-clock
+; test modes. They DO NOT change the Hyperboard jumpers or generator
+; frequency; select the appropriate clocks while POWERED OFF.
+; The confirmation is sent over the PREVIOUS active console, allowing
+; Tera Term to be changed before input at the new UART rate.
+AVIU19:  CALL(ISEOL)
          LBNF CMDERR
-         OUTSTR(AVIUNMSG)
-         RETURN
+         OUTSTR(AVI19MSG)
+         LBR AVIUSET
+AVIU38:  CALL(ISEOL)
+         LBNF CMDERR
+         OUTSTR(AVI38MSG)
+         LBR AVIUSET
 
-; The original e2k_stbd backend is verified at 9600.
+; 9600 is the only baud physically tested so far.
 AVIU96:  CALL(ISEOL)
          LBNF CMDERR
          OUTSTR(AVIC2MSG)
-         LDI $34
+AVIUSET: LDI $34
          CALL(F_USETBD)
          LBDF CMDERR
          RLDI(DP,BAUD1)
@@ -150,7 +158,8 @@ AVIHXDONE:
         RETURN
 AVIC1MSG: .TEXT "COM1 Q/EF4: PRESS CR AT 2400\r\n\000"
 AVIC2MSG: .TEXT "COM2 UART 9600 8N1\r\n\000"
-AVIUNMSG: .TEXT "?19200/38400 NOT YET SUPPORTED\r\n\000"
+AVI19MSG: .TEXT "COM2 19200 TEST: SET 307200 HZ TCLK/RCLK FIRST\r\n\000"
+AVI38MSG: .TEXT "COM2 38400 TEST: SET 614400 HZ TCLK/RCLK FIRST\r\n\000"
 AVIHXERRMSG: .TEXT "?HEX WRITE NOT IN RAM OR VERIFY FAILED\r\n\000"
 AVIHXDATAMSG: .TEXT "?HEX DATA: EXPECT TWO HEX DIGITS\r\n\000"
 #endif
