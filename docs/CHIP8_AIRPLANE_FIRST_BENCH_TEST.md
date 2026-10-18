@@ -35,3 +35,19 @@ After keyboard and video work, integrate ROM-resident CHIP-8 bootstrap as an opt
 - Prepared **`CHIP8-ELF-II-PIXIE-sanity-test.hex`**, a separate diagnostic combining the unchanged ELF interpreter with simple test data: `$0200:` CHIP-8 CLEAR; four outlined 8x8 sprites at (8,8), (40,8), (8,24), (40,24); stable `JP $0218` idle loop; sprite bytes `FF 81 81 81 81 81 81 FF` at $0300. The graphics diagnostic deliberately avoids ETI-660 code and key input.
 - The next test is to send this new HEX as an Intel HEX text file to the monitor (replaces prior interpreter/game in RAM), then `EXAMINE 0200 0219`, `EXAMINE 0300 0307`, `EXAMINE 0E00 0E0F`, and `RUN 0000`. Expected picture: **four hollow 8x8 squares**, no alternating garbage. If still garbage, prioritize ELF interpreter's display ISR, DMA pointer setup, memory load correctness and VIDEO ON/interrupt assumptions. If squares render, focus on game-specific ETI input/graphics and operation.
 - No ROM changes or hardware re-jumpering until we understand this isolation test. Keep F30A cassette baseline.
+
+
+## 2026-10-18: Owner-supplied Chip8_Maze (1).hex review
+
+The owner supplied a separate Intel HEX image named `Chip8_Maze (1).hex` for comparison. Verified all Intel HEX checksums; **546 data bytes** occupy exactly `$0000-$0221`:
+
+- `$0000-$01FF`: an embedded **RCA COSMAC VIP-style CHIP-8 interpreter** (native 1802 machine code and CHIP-8 startup bytes).
+- `$01FC-$01FF`: CHIP-8 startup `00 E0 00 4B` (clear screen, machine-specific SYS call).
+- `$0200-$0221`: 34-byte Maze demonstration program and sprite bytes.
+- **No memory records at $0E00 or above**, unlike Emma 02's `data/Elf/chip8.hex`, which includes its own $0E00-$0E6F video/ISR support.
+
+**Critical machine dependency:** the Maze interpreter's bytes `F8 81 B1 F8 46 A1` at `$0009-$000E` load **R1=$8146** (1802 interrupt PC), expecting COSMAC VIP ROM interrupt code at that address. On our AVI ELF II, ROM `$8000-$FFFF` instead contains **Pete's ELF II Monitor**, not the RCA VIP ROM, so $8146 is an invalid video-ISR target. Do not try `RUN 0000` on this image as if it were hardware-independent.
+
+For comparison, the ELF-specific CHIP-8 interpreter in Emma 02 `data/Elf/chip8.hex` begins `F8 0E B1 F8 46 A1`, loading **R1=$0E46**, and includes support code in RAM $0E00-$0E6F. This is why the earlier ELF interpreter was chosen; however, the owner has reported the same alternating garbled display even with a trivial PIXIE graphics test, so that version's **video/DMA setup still requires investigation on physical Hyperboard hardware**. The Maze image is valuable as a comparison and diagnostic, **not** evidence that the original interpreter can simply be loaded intact.
+
+Next work: examine the ELF-specific ISR at $0E46 and initialization details against the proven monitor `TEST PIXIE` CDP1861 video paths. Keep cassette and ROM unchanged until an isolated 1802 DMA/framebuffer test establishes correct video setup.
