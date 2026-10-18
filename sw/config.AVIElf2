@@ -17,7 +17,8 @@
 # in disposable AVI assembler input by avi-port.py.
 # COM1 bit-banged Q/EF4 default, nominal 2400. Requires EF4 hardware jumper.
 # COM2 CDP1854 is optional: 9600 8N1 presently proven.
-# COM2 19200/38400 deliberately REJECTED pending clock/hardware validation.
+# COM2 19200/38400 enabled as external-clock test modes; J10/J11 clock must
+# be physically configured for x16 baud (307.2/614.4 kHz), with power OFF.
 # Netronics Tiny BASIC executes separately from RAM starting at $0000.
 #
 # This configuration affects ONLY the AVI variant; stock Elf2K builds intact.
