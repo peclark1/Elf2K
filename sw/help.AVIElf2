@@ -2,8 +2,6 @@
 # Comments beginning with # ignored by romtext.
 AVI ELF II / NETRONICS-COMPATIBLE ROM (EXPERIMENTAL)
 Default: COM1 Q/EF4 2400 baud; press CR for autobaud.
-COM2 optional: CDP1854 UART 9600 8N1 on ports 2/3.
-Change COM1 physical receiver jumper to EF4 BEFORE using this ROM.
 
 SERIAL CONSOLE
     COM1  or  1            -- Q/EF4 COM1, re-autobaud on return
@@ -42,9 +40,3 @@ DIAGNOSTICS
     TE[st] PIXIE           -- original 1977 COSMAC/Enterprise bitmap
                               Use COM1 serial key to exit (EF4 receiver)
     HEL[p]                 -- this text
-
-Original Giant Monitor cassette also uses Q / EF2 and original keypad.
-Tiny BASIC separately loaded to RAM 0000; not included in ROM.
-Original rc/BASIC and XMODEM omitted from this variant.
-19200: 307.2 kHz; 38400: 614.4 kHz TCLK/RCLK; reset to COM1.
-BUILD VALIDATION DOES NOT EQUAL BENCH VALIDATION.
