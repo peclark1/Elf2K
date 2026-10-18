@@ -119,6 +119,13 @@ def port_boots(path: Path) -> None:
     s = substitute_exact(s,
         "PIXIE0:\tPIXIE_ON\t\t; enable the display ",
         "PIXIE0:\t; keep video off during terminal diagnostics")
+    # Removing the early PIXIE_ON changes ROM offsets, so the ISR's
+    # short return branch can straddle a 256-byte page boundary.
+    # This branch runs at vertical frame end (outside timed scanlines),
+    # so using an explicit long branch preserves the behavior safely.
+    s = substitute_exact(s,
+        "BR\tINT1RT\t\t; and return when the frame is finished",
+        "LBR\tINT1RT\t; and return when the frame is finished")
     # Netronics COM1 receives serial data on EF4, normally idle high.
     # The stock PIXIE test loops for idle-low keypad EF4; in this variant,
     # loop while COM1 idles high and quit on a PC serial start bit.
