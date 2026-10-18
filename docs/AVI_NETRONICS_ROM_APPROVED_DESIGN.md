@@ -9,7 +9,7 @@
 - **Default COM1**: Q transmit / **EF4** receive, bit-banged at the machine's proven nominal 2400-baud mode. Change the Hyperboard COM1 receiver select jumper to EF4 before trying this variant; do not switch physical jumpers powered.
 - Optional COM2: CDP1854 polling UART, verified **9600 8N1**, on Hyperboard ports 2/3, clock-latch OUT5. Keep the existing successful `LDX` receive-echo bug fix.
 - Monitor commands: `COM1` / `1`, `COM2 [9600|19200|38400]` / `2 [baud]`; retain `UART` as a COM2 alias. Selection acts on the *monitor*, not on independent historical applications. Give confirmation on the old active console first.
-- **19200 and 38400 must remain safely rejected until actual clock-selection support and receive integrity are proven.** CDP1863/CD4040 clock jumpers cannot be made software-selectable by simply changing a value in the ROM. Do not claim those rates work until verified.
+- **2026-10-18 bench-test decision:** accept `COM2 19200` and `COM2 38400` as explicit experimental external-clock modes. These commands initialize the SAME polling CDP1854 UART as `COM2 9600`; they do not modify the CDP1863/4040 hardware clock, so the user must select and measure 307.2 kHz or 614.4 kHz at BOTH UART TCLK and RCLK (16× desired baud) before testing. A mismatch may lose console characters, but a power/reset restarts COM1. Higher baud rates are not yet electrically verified and should not be presented as software-selectable clock modes. Do not reposition jumper leads while powered.
 - On cold boot, always return to COM1. For a live switch *back* from COM2, re-autobaud from COM1 (press CR at 2400) rather than assume a software-serial delay value.
 - Do not redirect historical Q/EF4 applications to the CDP1854.
 
