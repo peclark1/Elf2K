@@ -209,7 +209,7 @@ AVICLDBIT:
         GLO T2
         LBNZ AVICLDNEXT
         CALL(AVITBEND)
-        LBDF AVICLDERR
+        LBDF AVICLDHDR          ; not a parity error: 4K Tiny BASIC header invalid
 AVICLDNEXT:
         GLO INTPC
         STR SP
@@ -226,9 +226,24 @@ AVICLDNEXT:
         OUTSTR(AVICDONE)
         RETURN
 AVICLDERR:
+        ; T2 points to the NEXT byte (current byte failed parity).
+        ; Report only after stopping tape bit sampling. Printing through
+        ; COM1 while sampling would disturb cassette input timing.
         INC SP
         RLDI(DP,RAMPAGE)
+        RCOPY(P1,T2)
+        CALL(THEX4)
         OUTSTR(AVICPARERR)
+        RETURN
+AVICLDHDR:
+        ; After exactly 4K loaded: Tiny BASIC identification or
+        ; MEND/SPARE validation failed. These bytes were already stored
+        ; through $0FFF; T2 will be $1000.
+        INC SP
+        RLDI(DP,RAMPAGE)
+        RCOPY(P1,T2)
+        CALL(THEX4)
+        OUTSTR(AVICTBHDRERR)
         RETURN
 
 ; AVITBEND: validate original Netronics Tiny BASIC and return
@@ -305,7 +320,9 @@ AVICLDMSG:
 AVICDONE:
         .TEXT "CASSETTE TRANSFER COMPLETE\r\n\000"
 AVICPARERR:
-        .TEXT "?CASSETTE PARITY OR DATA ERROR\r\n\000"
+        .TEXT " <- CASLOAD PARITY ERROR AT NEXT BYTE\r\n\000"
+AVICTBHDRERR:
+        .TEXT " <- CASLOAD TBASIC HEADER INVALID AFTER 4K\r\n\000"
 AVICTBMSG:
         .TEXT "?NOT EXPECTED NETRONICS TINY BASIC IMAGE\r\n\000"
 AVICRMSG:
