@@ -41,3 +41,18 @@
 - Giant Monitor source: [Emma 02 archive](https://github.com/etxmato/emma_02/blob/master/data/NetronicsElfII/giantboard.hex); verified 256 data bytes at CPU `$F000–$F0FF`.
 - AVI Hyperboard documentation explicitly describes the Giant Monitor at `$F000`: [AVI Hyperboard assembly notes](https://github-wiki-see.page/m/awasson/AVI-ELF-II/wiki/AVI-Hyperboard-Expansion-Card-Assembly-Notes).
 - Netronics Tiny BASIC source uploaded for this project, `Tinybasi(1).asm`.
+
+
+## 2026-10-18 cassette hardware acceptance — F30A
+
+**Hardware-verified PASS:** AVI ELF II Hyperboard, original Netronics cassette interface, recorder volume 5, One ROM Fire 28 experimental image with checksum **F30A** (pure assembled image **F362**).
+
+- Netronics Tiny BASIC loaded to RAM via Intel HEX and executed correctly.
+- `CASSAVE TBASIC` produced a tape recording and completed.
+- After power-off/restart, the original `CASLOAD TBASIC` failed near the 4 KiB transition: diagnostic firmware reported next-byte parity error at `$1004`.
+- Using the **same recording**, explicit `CASLOAD 0000 1081` completed and Tiny BASIC ran correctly with the saved program.
+- Revised F30A `CASLOAD TBASIC` computes dynamic length during early header reception rather than blocking at the 4 KiB boundary. User reported `CASSETTE TRANSFER COMPLETE` then `RUN 0000` successfully started Tiny BASIC with saved lines `10 PRINT "HELLO FROM ELF II "` and `20 GOTO 10`, and repeated `HELLO FROM ELF II` output.
+- **Conclusion:** complete cassette SAVE / automatic LOAD / execute round trip accepted on physical hardware for this tested image and recorder setting. Existing tape format and original Giant Board single-bit cassette primitives remain unchanged.
+- Do not confuse this achievement with proof of error-free operation for every cassette or device; ROM checksum scan POST 97 remains independently unresolved and startup patch is still required for One ROM testing.
+
+Build: https://github.com/peclark1/Elf2K/actions/runs/39165990054 ; artifact https://github.com/peclark1/Elf2K/actions/runs/39165990054/artifacts/12150274497 . No main-branch merge authorized.
