@@ -1,3 +1,17 @@
+# CRITICAL CORRECTION — 2026-10-18
+
+The **first** Netronics 1979 RAM test image generated in this project was **invalid**: *Ipso Facto* #11 Table 2 row **$0100** was mistakenly transcribed as **$0010**. That overwrote the interpreter's critical initialization instructions at $0010–$0013 and failed to install the intended $0104–$0107 instructions. This is a **source transcription error**, not a Netronics ELF II hardware diagnosis.
+
+**Use only the revised HEX files on this branch (commits after the correction).** The initial ZIP `Netronics-ELF-II-CHIP8-1979-First-Test.zip` and earlier downloaded standalone test HEX files are **superseded**.
+
+Corrected checks: `$0010–$0017 = B4 F8 1B A4 F8 01 B5 F8` and `$0100–$0107 = 00 00 00 00 F8 01 B5 F8`.
+
+New verified full-image SHA256: **Four-Squares** `1f4ab52bb8dfe726ca77b1b3d12a0707bc44b57d676244473c2c99f5545d6737`; **Maze** `d7fec6517a7f063b3b455f4761c2eaa96e518d9fcd98c642fb08b317d1318587`.
+
+The fixed RAM HEX files are still **not hardware-verified**. No AVI ROM image has been changed.
+
+---
+
 # Netronics ELF II / 1979 CHIP-8 reconstruction (experimental)
 Derived from M. E. Franklin/Lynn Clock, *Ipso Facto* Issue 11 (April 1979), printed pp. 35–38, with Issue 12 (June 1979), printed p. 55 erratum.
 The tables in the article are **patches**, not complete code. This folder preserves two matching archived RCA VIP 512-byte base images (converted to Intel HEX with address $0000), exact patch rows as `patches.txt`, and reproducible RAM test images.
