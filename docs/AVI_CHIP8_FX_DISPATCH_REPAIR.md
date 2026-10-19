@@ -77,3 +77,14 @@ On the programmed repaired FXFIX-ROM AVI ELF II + Hyperboard, the owner confirms
 This is consistent with the Netronics adaptation's separately encoded hexadecimal keypad data (1802 `INP 4`) and INPUT/EF4 signal; it differs from modern CHIP-8 emulators where holding 4 or 6 alone generally moves the paddle. The earlier FX0A two-square test similarly worked when hex 5 was pressed and released *before* a separate INPUT press. Avoid describing these separate-button observations as a new firmware defect.
 
 Still to be characterized: whether 4 and 6 can switch directions while INPUT stays held; full-game outcomes and other historical games (Wipe Off and Kaleidoscope) are not established by the Breakout control test.
+
+
+## Breakout verified play ergonomics and RUN restart
+
+Further owner testing on the actual AVI ELF II confirms:
+
+- With **autoboot disabled**, toggling hardware **RUN OFF then RUN ON** restarts the resident CHIP-8 Breakout game directly, without serial reload or a return to the ROM monitor. This was explicitly tested; it is not only a theoretical behavior.
+- Although selecting hex **4** or **6** and pressing/holding INPUT afterward works, actual gameplay is much easier with **hex 4 + INPUT held together** to move left and **hex 6 + INPUT held together** to move right. The owner's real-world preference is simultaneous holding for natural reaction to the ball.
+- The earlier two-stage direction-latch procedure remains useful for electrical diagnosis, but should **not** be presented as the preferred play instructions.
+
+Do not infer that the interpreter has been changed or that other games are fully tested from these observations. A test of switching 4/6 while INPUT is kept held was proposed but is not yet independently confirmed.
