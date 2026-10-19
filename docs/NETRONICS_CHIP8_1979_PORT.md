@@ -169,17 +169,32 @@ Checked the actual archived two hex files: the full image does contain both exac
 **Next smallest useful bench distinction:** after running the full ISR-test HEX and returning to monitor without power-off, `EXAMINE 0B20 0B3F` again. If those pixels match `00 FF .. FF` / `00 81 .. 81`, drawing works while the **new handler** fails to render (check EF1 interrupt timing and whole framebuffer). If pixels are zero/garbage despite full-image load, pursue startup/IRQ register/state corruption before refining the DMA timing. Full HEX and patch-only must only be compared from identical freshly loaded baseline images. No new ROM patch/firmware change performed.
 
 
-## 2026-10-18: Exact PIXIE DMA loop timing mistake discovered
+## 2026-10-18: Hardware framebuffer proves CHIP-8 drawing; monitor RUN has interrupts DISABLED
 
-After loading the **full** previous PIXIE-ISR test image (fresh RAM initialization), the owner still saw alternating white/garbage and `EXAMINE 0B20 0B3F` showed exactly the correct `FF` / `81` four-square pixel bytes. This independently demonstrates that CHIP-8's drawing/graphics RAM remain correct even when the earlier substitute ISR is used.
+The owner ran the **full experimental PIXIE-ISR HEX** from a fresh Intel HEX load (not the stale patch-only test). CRT remained alternating white/garbage. After returning to monitor without removing power, `EXAMINE 0B20 0B3F` reported exactly:
+```
+0B20  00 FF 00 00 00 FF 00 00 00 81 00 00 00 81 00 00
+0B30  00 81 00 00 00 81 00 00 00 81 00 00 00 81 00 00
+```
+**CHIP-8 drew correct pixels even with replacement ISR**. No stable displayed picture is yet verified.
 
-Comparing byte-for-byte with the **proven AVI ROM `TEST PIXIE` ISR** in the actual 1C62 `boots.lst` located a concrete bug **in our experimental ISR**:
+### Critical root-cause candidate: 1802 IE flag
+Auditing source in `sw/boots.asm` / `sw/boots.inc` reveals:
+- Boot `SYSINI` explicitly issues `DIS` (1802 interrupt-disable), sets X=P=0.
+- Monitor `RUNUSR` → `RUN2` sets R1 to TRAP, then `SEX 0 ; SEP 0`. **It never executes `RET`/INT_ON to re-enable interrupts.**
+- Proven `TEST PIXIE` explicitly invokes `INT_ON` (macro `SEX PC ; RET ; .DB (SP<<4)|PC`) **before `PIXIE_ON`**.
+- The 1979 historical CHIP-8 system was designed for a front-panel restart with interrupts enabled; it relies on R1 as the CDP1861 ISR PC. The monitor launching CHIP-8 with IE=0 could leave video enabled but R0 DMA **unrefreshed each frame**, explaining alternating white/random screen even though the graphics buffer is correct.
 
-- Working ROM `DSP1PG` starts at `$9009: E2` (**`SEX R2`**) and the loop tail has **`BN1 $9009`**; every loop iteration executes this `SEX R2` for precisely controlled 1861 DMA timing.
-- Our copied handler starts equivalent loop at **`$0E0D: E2`**; but its tail at `$0E19` was **`3C 0E`**, branching to **`$0E0E: GLO R0`**, *skipping the $0E0D `SEX R2` instruction on every iteration*. The 1802 `SEX` instruction takes two machine cycles; losing it shifts the CRT/DMA synchronization.
-- **Corrected single byte**: `$0E1A: 0E → 0D`; tail now `3C 0D`, exactly matching `BN1 DSP1PG` in the known-working ROM handler. All other bytes, the stack-safe Four-Squares program, ISR/R1 vector at $0C9D–$0CA2, framebuffer and original firmware are unchanged.
-- Source-controlled **full reset-safe 3616-byte Intel HEX**: `sw/chip8-historical/Netronics-1979-CHIP8-Four-Squares-PIXIE-ISR-LOOP-FIX.hex`. All Intel HEX checksums verified. SHA256 of full 3616-byte memory image: `d87cdfcc6f42ab575c9023637996b19944b2595e6a6192f901078a1cd8062e49`. **NOT hardware verified yet.**
-- Hardware test: reload the **entire new HEX file** fresh (not a one-byte patch to previously executed/mutated interpreter RAM). Before first `RUN`, `EXAMINE 0E0D 0E1C` should show `E2 80 E2 20 A0 E2 20 A0 E2 20 A0 3C 0D 30 00`. Then `RUN 0000` and check whether four outlined squares stabilize on CRT.
-- If picture is still unstable with branch fixed, pursue isolated **native 1802 RAM framebuffer display driver** with the same verified video ISR to test video DMA reading from RAM independent of the CHIP-8 interpreter. The prior `TEST PIXIE` had displayed from **ROM**, so RAM-origin DMA remains an untested distinction.
+### Control test: enable interrupts before entering historical CHIP-8
+New complete full-load HEX file `sw/chip8-historical/Netronics-1979-CHIP8-Four-Squares-INTERRUPTS-ON.hex`:
+- Is **byte-for-byte identical** to the last stack-safe 1979 Netronics image throughout `$0000-$0DFF`, using **original period handler at $0D46** and game at $0200; not the temporary $0E02 experimental ISR.
+- Adds only **six native CDP1802 bytes** at free RAM `$0E80-$0E85`: `E0 70 00 C0 0C 10`.
+- Start **`RUN 0E80`**, **not** `RUN 0000`. Native code: `SEX R0` (X=0); `RET` reads inline `00` (X=P=0, IE=1) and advances R0 to $0E83; `LBR $0C10` enters original 1979 Netronics startup normally.
+- The ROM monitor's `RUN` operation initializes X=P=0, as required by this bootstrap. Following the `RET`, 1802 interrupts are enabled and historical CHIP-8 can service the CDP1861 correctly at R1=$0D46.
+- Before run, `EXAMINE 0E80 0E85` should show `E0 70 00 C0 0C 10`.
+- **NOT hardware tested yet**. Complete file includes 3590 data bytes and all Intel HEX checksums pass. SHA256 of the full Intel HEX text `e4471c7152f04c33e87b2e324abf2fdb88310b109b1a5966b3a64b15168428bd`.
 
-This new root-cause finding invalidates the earlier claim that the experimental ISR was identical in cycle timing to `TEST PIXIE`; it was not, due to the off-by-one branch. It does not establish that this is the **sole** remaining issue until on-hardware verification. Preserve F30A / 1C62 ROM cassette baseline.
+### Explicit correction to an abandoned interpretation
+A proposed experimental DMA loop fix `$0E1A: 0E→0D` was **withdrawn after checking precise byte addresses**. In the experimental ISR, **`$0E0E=E2 (SEX R2)`** and `$0E19=3C $0E1A=0E` correctly branches to that instruction. The 1979 ISR uses different timing code; the copied test does not have the initially alleged one-byte branch error. The incorrectly modified loop-fix HEX was deleted from the branch before being offered as a test. The true significant difference is the **interrupt-enable state on entry**, still pending bench validation.
+
+If the new full-load IE-enabled test still fails, next isolate **RAM-based CDP1861 DMA** versus the previously validated ROM-based `TEST PIXIE` using a purpose-built native 1802 RAM framebuffer viewer. Do not change hardware/jumpers or the cassette ROM for this check.
