@@ -5,6 +5,7 @@ on:
     branches:
       - feature/avi-elf2-hyperboard-rom
       - feature/avi-netronics-compatible-rom
+      - feature/avi-com2-38400-default-chip8
   pull_request:
   workflow_dispatch:
 
