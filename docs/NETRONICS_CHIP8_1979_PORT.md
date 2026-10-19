@@ -167,3 +167,19 @@ Checked the actual archived two hex files: the full image does contain both exac
 **Interpretation:** the earlier patch-only black screen is **not a meaningful fresh-start validation** of the handler. Low-RAM CHIP-8 interpreter state has been mutated by prior execution; patch-only does not reset it. The full-image test must be treated as the valid ISR experiment. This result **does not confirm the modified handler fixes DMA**; apparently it does not produce four stable squares.
 
 **Next smallest useful bench distinction:** after running the full ISR-test HEX and returning to monitor without power-off, `EXAMINE 0B20 0B3F` again. If those pixels match `00 FF .. FF` / `00 81 .. 81`, drawing works while the **new handler** fails to render (check EF1 interrupt timing and whole framebuffer). If pixels are zero/garbage despite full-image load, pursue startup/IRQ register/state corruption before refining the DMA timing. Full HEX and patch-only must only be compared from identical freshly loaded baseline images. No new ROM patch/firmware change performed.
+
+
+## 2026-10-18: Exact PIXIE DMA loop timing mistake discovered
+
+After loading the **full** previous PIXIE-ISR test image (fresh RAM initialization), the owner still saw alternating white/garbage and `EXAMINE 0B20 0B3F` showed exactly the correct `FF` / `81` four-square pixel bytes. This independently demonstrates that CHIP-8's drawing/graphics RAM remain correct even when the earlier substitute ISR is used.
+
+Comparing byte-for-byte with the **proven AVI ROM `TEST PIXIE` ISR** in the actual 1C62 `boots.lst` located a concrete bug **in our experimental ISR**:
+
+- Working ROM `DSP1PG` starts at `$9009: E2` (**`SEX R2`**) and the loop tail has **`BN1 $9009`**; every loop iteration executes this `SEX R2` for precisely controlled 1861 DMA timing.
+- Our copied handler starts equivalent loop at **`$0E0D: E2`**; but its tail at `$0E19` was **`3C 0E`**, branching to **`$0E0E: GLO R0`**, *skipping the $0E0D `SEX R2` instruction on every iteration*. The 1802 `SEX` instruction takes two machine cycles; losing it shifts the CRT/DMA synchronization.
+- **Corrected single byte**: `$0E1A: 0E → 0D`; tail now `3C 0D`, exactly matching `BN1 DSP1PG` in the known-working ROM handler. All other bytes, the stack-safe Four-Squares program, ISR/R1 vector at $0C9D–$0CA2, framebuffer and original firmware are unchanged.
+- Source-controlled **full reset-safe 3616-byte Intel HEX**: `sw/chip8-historical/Netronics-1979-CHIP8-Four-Squares-PIXIE-ISR-LOOP-FIX.hex`. All Intel HEX checksums verified. SHA256 of full 3616-byte memory image: `d87cdfcc6f42ab575c9023637996b19944b2595e6a6192f901078a1cd8062e49`. **NOT hardware verified yet.**
+- Hardware test: reload the **entire new HEX file** fresh (not a one-byte patch to previously executed/mutated interpreter RAM). Before first `RUN`, `EXAMINE 0E0D 0E1C` should show `E2 80 E2 20 A0 E2 20 A0 E2 20 A0 3C 0D 30 00`. Then `RUN 0000` and check whether four outlined squares stabilize on CRT.
+- If picture is still unstable with branch fixed, pursue isolated **native 1802 RAM framebuffer display driver** with the same verified video ISR to test video DMA reading from RAM independent of the CHIP-8 interpreter. The prior `TEST PIXIE` had displayed from **ROM**, so RAM-origin DMA remains an untested distinction.
+
+This new root-cause finding invalidates the earlier claim that the experimental ISR was identical in cycle timing to `TEST PIXIE`; it was not, due to the off-by-one branch. It does not establish that this is the **sole** remaining issue until on-hardware verification. Preserve F30A / 1C62 ROM cassette baseline.
