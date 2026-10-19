@@ -94,16 +94,19 @@ def main() -> None:
     if not set(diff) <= allowed:
         raise SystemExit("Unexpected patch outside approved bytes")
     a.output_dir.mkdir(parents=True, exist_ok=True)
-    prefix = "AVIElf2-Netronics-OneROM-EXPERIMENTAL"
+    prefix = "AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM"
     (a.output_dir / (prefix + ".bin")).write_bytes(patched)
     to_hex(patched, a.output_dir / (prefix + ".hex"))
     (a.output_dir / "AVIElf2-Netronics-assembled.bin").write_bytes(assembled)
     report = (
-        "AVI COM2-FIRST 38400 CHIP8 ROM — NEW BOOT PATH NOT BENCH TESTED\n"
-        "Preserve the previously verified 1C62 / F30A OneROM backup for rollback.\n"
+        "AVI COM2-FIRST 38400 CHIP8 FX DISPATCH FIX — NEW ROM NOT YET BENCH TESTED\n"
+        "Preserve the already working COM2-first 38400 OneROM, and the older COM1 ROM.\n"
         "COM2 38400 8N1 boots directly; J15 COM1-to-EF4 jumper may be removed at power-off.\n"
         "Ensure existing Hyperboard COM2 x16 clock is 614400 Hz and Tera Term 38400 8N1.\n"
-        "COM2 9600/19200/38400 owner tested with matching external UART clocks.\n"
+        "COM2 38400 boot is owner-tested on real AVI ELF II/Hyperboard.\n"
+        "CHIP8 RAM-only repair: $0105-$0109 01 B5 F8 56 D4 -> 45 A3 98 56 D4.\n"
+        "Owner proved FX07 (two stable squares) and FX0A (key 5 + INPUT -> second square).\n"
+        "New ROM integration of that fix remains to be validated on hardware.\n"
         "One ROM test image bypasses the unresolved startup ROM checksum scan.\n"
         f"Patch at CPU ${0x8000+romchk:04X}-${0x8000+romchk+2:04X}: "
         + old_instruction.hex().upper() + " -> " + replacement.hex().upper() + "\n"
