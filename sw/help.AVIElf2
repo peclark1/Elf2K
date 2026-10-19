@@ -17,6 +17,15 @@ PROGRAM CONTROL
     ASM [NEW|OLD]          -- editor/assembler
     RUN F000               -- ORIGINAL 256-BYTE GIANT MONITOR
 
+CHIP-8 -- 1979 NETRONICS INTERPRETER (64x32 PIXIE)
+    CHIP8 FOUR             -- built-in four-square video demo
+    CHIP8 MAZE             -- built-in Maze game
+    CHIP8                  -- run a CHIP-8 program loaded at 0200
+    Loads original interpreter/OS from ROM into low RAM; keeps
+    0200-09FF game RAM; clears 0A00-0BFF; enables interrupts.
+    Reset to exit.  No terminal while PIXIE DMA is active.
+    ETI-660 64x48 programs are not generally compatible.
+
 CASSETTE - Q output / EF2 input; Netronics tape format
   CASSAVE start end   -- record inclusive RAM range
   CASLOAD start end   -- restore inclusive RAM range
