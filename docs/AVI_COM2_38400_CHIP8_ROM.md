@@ -84,3 +84,10 @@ This would execute `LDN R1; PHI R5` on every F opcode, corrupt the CHIP8 program
 Do **not** simply change $006F to $04: that would enter at 0104 but would **not** restore the original $0105 LDA R5/PLO R3 dispatch. It would not solve the F handler logic.
 
 External corroboration: RCA 1978 COSMAC VIP manual Appendix C has `0100: 00 00 00 00 00 45 A3 98 / 0108: 56 D4 F8 81 BC F8 95 AC`; Laurence Scotford's "Chip-8 on the COSMAC VIP: The Call Routine (Fetch and Decode)" and "Keyboard Input" describe the F-group dispatch and FX0A.
+
+
+## 2026-10-19 hardware verified F-dispatch five-byte repair
+
+After confirming in monitor `E 0105 0109` that the current Netronics interpreter had `01 B5 F8 56 D4` at $0105, the owner patched RAM `D 0105 45 A3 98 56 D4`, restored `FX07` in the two-square program with `D 0208 F2 07`, and ran `RUN 0E80` rather than `CHIP8` (which would overwrite the RAM patch). **Hardware outcome: TWO STABLE SQUARES.** This is a decisive positive controlled test that restoring original VIP $0105 F-family dispatch fixes FX07 on the actual AVI ELF II/Hyperboard with COM2-first 38400 monitor. The ROM image itself has NOT been changed; patch is RAM only.
+
+Next bench step: RESET, `D 0208 F2 0A`, then `RUN 0E80` with the same $0105 patched interpreter still in RAM. With first square displayed, hold key 5, tap INPUT and release INPUT while continuing to hold 5; expect second square if original Netronics FX0A implementation can use EF4/INP4. Do not issue `CHIP8` until completing patched test. If succeeds, develop a separate ROM-fix variant that patches the 5 bytes of the historically copied interpreter, preserving previous known-good ROM as a rollback and requiring independent checks.
