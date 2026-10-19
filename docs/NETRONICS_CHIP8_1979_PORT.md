@@ -227,3 +227,30 @@ No firmware code changes were needed for this observation. The Netronics CHIP-8 
 The combined historical interpreter + Maze at $0200 and original period Netronics OS graphics path therefore execute a genuine CHIP-8 program on real hardware. This confirms more than basic sprite test execution; it does **not yet** demonstrate keypad input, sound, timer accuracy, ETI-660 variant compatibility, or ROM-resident launch. 1979 Netronics interpreter continues to live in low RAM; monitor and verified cassette firmware unchanged.
 
 **Next stage:** Test the user's original ETI-660 `Airplane.hex` game at `$0600` using a two-byte CHIP-8 trampoline `$0200: 16 00`, retaining the same original Netronics interpreter and bootstrapping at `RUN 0E80`; original ETI-660 screen dimensions may differ from the 64x32 Netronics mode. If accepted, design ROM-stored interpreter with low-RAM image-loader preserving separately loaded game bytes.
+
+
+## 2026-10-19: Airplane video shows partial horizon only; test timer before keyboard
+
+Owner ran the original ETI-660 `Airplane.hex` packaged with the proven 1979 Netronics CHIP-8 interpreter, entered through `RUN 0E80`. Bench video `IMG_9983.MOV` shows a horizontally growing/shrinking line toward the bottom of the Panasonic display and no identifiable aircraft. Owner pressed CHIP-8 key 8 and the physical INPUT button; **neither appeared to affect the display**. Owner supplied a working emulator screenshot with the complete scene: multiple airborne and ground objects, line and score. Do **not** claim Airplane works; only some graphics are appearing.
+
+A code audit of the **actual original Airplane binary** finds:
+```
+060E 6030   V0 = $30
+0610 6101   V1 = 1
+0612 F015   set delay timer = 48 ticks
+0614 F007   V0 = delay timer
+0616 F118   set sound timer
+0618 3000   skip next instruction if V0 == 0
+061A 1614   loop back to read delay timer (when not zero)
+061C 2642   commence game updates
+0624 6008   V0=8
+0626 E0A1   keyboard check (skip next instruction if key 8 not pressed)
+```
+An inoperative `FX15/FX07` delay timer **could** explain why it never processes keypad input; video alone cannot prove a timer fault. The game may also have ETI-660 (64x48) vs Netronics (64x32) differences, or input port/EF4 issues. Do not troubleshoot the keypad before demonstrating that the game reaches its input polling code.
+
+Two independent complete-RAM hardware diagnostics were created, preserving the **identical proven 1979 interpreter and original Netronics IRQ/OS/interrupt-enabled $0E80 bootstrap**:
+
+1. `sw/chip8-historical/Netronics-1979-CHIP8-Timer-Two-Squares-TEST.hex`: Tiny CHIP-8 test at $0200 draws an outlined square at (8,8), sets delay timer to 48 via `F215`, polls `F207` until zero and then draws an independent square at (40,8). If both squares appear ~0.8 s apart, timer works; if only first remains, timer is stuck or FX07/FX15 unsupported/broken. The ROM and display ISR are unchanged.
+2. `sw/chip8-historical/Netronics-1979-CHIP8-Airplane-Bypass-Delay-TEST.hex`: Full actual Airplane unchanged except **`$0614-$0615: F0 07 -> 16 1C`**, skipping the first `F007` delay wait to reach Airplane's update/key test path. This makes gameplay unpaced and may run excessively fast: **diagnostic only**, not a fixed game. Does not rule out other incompatibilities.
+
+Both images are 3590 data bytes, checksums validated, start with **`RUN 0E80`** and should be loaded whole fresh each run due to mutable interpreter RAM. **No hardware test result available yet**. A ZIP for bench use is `Netronics-ELF-II-CHIP8-Airplane-Timer-Diagnostics.zip`.
