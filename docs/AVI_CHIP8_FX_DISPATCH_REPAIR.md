@@ -33,7 +33,7 @@ The exact five-byte patch is proven on real AVI ELF II hardware, and there is no
 Separate branch: feature/avi-chip8-fx-dispatch-fix, based on hardware-tested COM2-first 38400 branch. Original branch and older OneROM chips remain intact.
 
 - sw/avi-chip8.asm: the interpreter ROM archive at CPU D905-D909 is changed from 01 B5 F8 56 D4 to 45 A3 98 56 D4, so CHIP8 automatically copies the correct dispatcher to RAM at 0105.
-- sw/build/verify-avi.py: all 1098 interpreter, OS, sprite, game and boot data bytes are checked against *unmodified* 1979 archived RAM HEX fixtures, with one explicit five-byte exception (1093 bytes original and 5 corrected).
+- sw/build/verify-avi.py: all 1098 interpreter, OS, sprite, game and boot data bytes are checked against *unmodified* 1979 archived RAM HEX fixtures, with exactly three changed bytes (RAM $0105: 01→45, $0106: B5→A3, $0107: F8→98). The remaining 1,095 bytes, including the two unchanged bytes at $0108–$0109, match the original period sources.
 - sw/build/prepare-one-rom.py: output labelled FXFIX, checksum-bypass procedure otherwise unchanged.
 - Independent CI builds must succeed and match byte-for-byte, with verified layout and ROM checksum.
 
@@ -48,3 +48,8 @@ Separate branch: feature/avi-chip8-fx-dispatch-fix, based on hardware-tested COM
 7. If the new ROM fails, reinstall previous working COM2-first OneROM; do not change jumpers live.
 
 Do not merge until owner confirms ROM image, not just the RAM patch.
+
+
+## Downloadable programming artifact
+
+The passing `AVI ELF II ROM development build` GitHub Actions run creates an independent `AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM-PROGRAMMING` ZIP with a 32,768-byte binary, corresponding Intel HEX, short README, and SHA-256 checksum manifest. CI runs two clean builds and requires byte-for-byte identical assembled HEX before packaging. The image retains the proven COM2-first 38,400-baud setup and existing experimental OneROM startup-checksum bypass. **Only the RAM patch has been bench verified; this newly compiled ROM awaits bench verification.**
