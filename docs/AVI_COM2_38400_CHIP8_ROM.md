@@ -48,3 +48,39 @@ The two-square user-program memory was read back and matches program at $0200 an
 ### 2026-10-19 FX07 video (IMG_0005.MOV)
 
 Owner power-cycled and loaded the complete `CHIP8_FX07_TWO_SQUARES_FULL.hex` over 38400 COM2. The HEX artifact has three valid Intel HEX records: $0200..$020F = `60 08 61 08 A3 00 D0 15 F2 07 60 28 D0 15 12 0E` and sprite $0300..$0304 = `FF 81 81 81 FF`. Its final branch `12 0E` at $020E correctly loops at itself. The owner's 6.5-sec video visibly shows vertical bars followed by rapidly changing dense static, then near-solid PIXIE region, **not stable two squares**. This establishes FX07 also fails and that failure is **not specific to FX0A's EF4 or INP4 path**, conditional on verifying actual board memory. No memory-examine readback was supplied after this new power cycle, so first confirm `E 0200 020F`, `E 0300 0304`. If correct, patch just `D 0208 62 05` then `CHIP8` (restores stock OS; program preserved), expecting two stable squares as earlier observed. This is a same-load control test; only then investigate the historical Fx dispatch/return code. Avoid firmware reflashing or blaming hardware until this control passes.
+
+## 2026-10-19 — Suspected 1979 F-group dispatcher corruption (unverified fix)
+
+After the owner confirmed **two stable squares** with the same valid externally loaded test program by replacing `FX07` at $0208 with `62 05`, we examined the original RCA COSMAC VIP interpreter (RCA manual Appendix C), compared with the *Ipso Facto* #11 p37 Netronics Table 2 and the byte-identical integrated copy.
+
+The original RCA VIP group-F dispatch address table in RAM **$006F = $05** (with $005F=$01) enters **$0105**, where the original bytes are:
+
+```
+0105: 45    LDA R5      ; fetch second opcode byte, advance CHIP8 PC
+0106: A3    PLO R3      ; executable dispatch to $01xx, e.g. xx=07 or 0A
+0107: 98    GHI R8      ; FX07 read timer
+0108: 56    STR R6      ; store into Vx
+0109: D4    SEP R4      ; return to fetch/decode
+010A: F8 0D BC F8 95 AC ... ; Netronics FX0A keyboard entry
+```
+
+The published *Ipso Facto* Table 2 writes `0104: F8 01 B5 F8` and `0108: 56 D4 F8 0D ...`, so the adapted RAM is:
+
+```
+0104: F8 01 B5 F8 56 D4 F8 0D BC F8 95 AC ...
+0105: 01 B5 F8 56 D4 ... ; actual F-group entry is now broken
+```
+
+This would execute `LDN R1; PHI R5` on every F opcode, corrupt the CHIP8 program counter, and then fall back to the fetch loop without selecting an F operation. It exactly fits the identical FX07 and FX0A video-failure results. The #12 erratum appears to discuss only hardware video mapping at $0C70, not this dispatch.
+
+**Proposed unverified minimal RAM-only patch**, preserving period Netronics FX0A routine and both monitor images:
+
+1. The externally loaded two-square diagnostic remains in RAM after RESET (verify `E 0200 020F`, `E 0300 0304`; it last had `62 05` at $0208 and displayed two stable squares).
+2. `E 0100 0114` to confirm current pre-patch interpreter code. Then `D 0105 45 A3 98 56 D4`. This restores original RCA VIP group-F dispatch and FX07 handler only; Netronics 010A keyboard routine and original $0D95 OS remain unchanged.
+3. `D 0208 F2 07`; optionally verify with E. **`RUN 0E80`** (NOT `CHIP8`, which would overwrite patch). Expect two stable squares, proving FX07 now works.
+4. On success, RESET and `D 0208 F2 0A`, then `RUN 0E80`; expect first square waiting until physical INPUT + hexadecimal key sequence, then second square. That would prove the keyboard path too.
+5. If fail, don't change shipped ROM; further trace program pointer $0105 before proposing other changes.
+
+Do **not** simply change $006F to $04: that would enter at 0104 but would **not** restore the original $0105 LDA R5/PLO R3 dispatch. It would not solve the F handler logic.
+
+External corroboration: RCA 1978 COSMAC VIP manual Appendix C has `0100: 00 00 00 00 00 45 A3 98 / 0108: 56 D4 F8 81 BC F8 95 AC`; Laurence Scotford's "Chip-8 on the COSMAC VIP: The Call Routine (Fetch and Decode)" and "Keyboard Input" describe the F-group dispatch and FX0A.
