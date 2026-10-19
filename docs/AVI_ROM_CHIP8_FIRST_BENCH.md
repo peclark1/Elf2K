@@ -110,13 +110,13 @@ Port 4 = AF  (F pressed)
 ```
 The low nibble follows the keypad exactly, and the interpreter masks `INP 4` to low 4 bits. **Keypad scanning and port 4 decoding are verified on hardware.** The upper nibble is variable/floating/other signals and not part of the Netronics CHIP-8 keypad code. Idle value $64 needn't identify a key.
 
-Rechecked **owner's actual early-revision Netronics ELF II assembly manual schematic, page 14**: S1 INPUT, A13 two-stage 4049 buffer, D6 diode into EF4, and R26 47K pull-down on the EF4 output node. Expected static **released low / pressed high**, barring transient timing from C8 22µF. Owner's static EF4=1 both ways is abnormal for that circuit but does *not* by itself establish whether the cause is the added Hyperboard, monitor EF4 sampled outside a transient, or the motherboard INPUT control path. Original *Ipso Facto* #11 p36 requires Netronics keypad at I/O4 (6C) and INPUT switch at EF4.
+Rechecked **owner's actual early-revision Netronics ELF II assembly manual schematic, page 14**: S1 INPUT, the first A13 4049 inverter (input pin9/output pin10), and D6 diode pull-down into EF4. **Correction after tracing the schematic:** R26 47K belongs to the separate N2/LOAD output circuit, NOT EF4. D6 is oriented to pull EF4 low when the first A13 inverter's output goes low: expected static **EF4=1 with S1 released, EF4=0 with S1 held**, although C8 22µF across S1 may affect transitions. Owner's EF4=1 idle is NORMAL, but EF4=1 continuously held is unexpected. Do not infer which specific component holds EF4 high without a voltage measurement. Original *Ipso Facto* #11 p36 requires Netronics keypad at I/O4 (6C) and INPUT switch at EF4.
 
 Hyperboard J15 schematic: pin9 labelled EF4 and pin7 is COM1 receive-select circuit; a jumper between J15 pins7/9 can feed EF4 to COM1. **Don't remove J15 EF4 select before a cold boot:** current Pete's Monitor defaults to COM1 Q/EF4 and uses that input for startup autobaud. Disconnecting it could prevent reaching the `COM2` command, even though COM2 works after selecting it.
 
 Next **safe** diagnostic while already communicating over COM2:
 - Probe **J15 pin9 (EF4)** on the Hyperboard, or known CPU EF4 probe point, with DMM/scope referenced to board GND. Compare DC logic levels INPUT released and continuously held, without moving jumpers.
-- If both high, EF4 physically held high: trace contention and S1/D6/R26 on the original motherboard, plus J15-related loading.
+- If both high, EF4 physically held high: trace S1, A13 output pin10, D6 and the EF4 wiring on the original motherboard, plus possible Hyperboard effects. R26 is NOT connected to EF4.
 - If level toggles but `SHOW EF` doesn't, reconsider transient pulse/timing or physical EF4 mapping to CDP1802. If button only produces a momentary signal, use a scope/logic analyzer rather than relying on slow CLI sampling.
 - Preserve working ROM while diagnosing; no CHIP-8 code patch justified yet.
 
