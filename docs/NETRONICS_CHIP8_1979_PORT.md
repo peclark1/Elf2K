@@ -218,3 +218,12 @@ ROM design implication: eventual built-in monitor `CHIP8` launcher MUST explicit
 While uploading the post-graphics-success Maze HEX test, owner independently reported **COM2 (CDP1854 hardware UART) operating successfully at both 19,200 and 38,400 baud** on real AVI ELF II Hyperboard hardware. These two baud selections, previously described as experimental/awaiting test, are now **hardware-confirmed by the owner**. The physical UART clock/jumper arrangements, any error-rate tests, and prolonged-transfer reliability metrics were not reported in this update; do not infer exact jumper pin positions or claim exhaustive stress testing.
 
 No firmware code changes were needed for this observation. The Netronics CHIP-8 ROM integration remains a separate pending task.
+
+
+## 2026-10-19: MAZE GAME PASS — Netronics CHIP-8 hardware
+
+**OWNER-CONFIRMED REAL-HARDWARE SUCCESS:** The full image `sw/chip8-historical/Netronics-1979-CHIP8-Maze-INTERRUPTS-ON.hex` was loaded on the original Netronics ELF II with AVI Hyperboard, CDP1861 PIXIE and Panasonic CRT, and the user reported explicitly: **“maze program worked!”**. This follows the photograph-confirmed Four-Squares test working with the same six-byte interrupt-enable bootstrap at `$0E80`, launched via **`RUN 0E80`**.
+
+The combined historical interpreter + Maze at $0200 and original period Netronics OS graphics path therefore execute a genuine CHIP-8 program on real hardware. This confirms more than basic sprite test execution; it does **not yet** demonstrate keypad input, sound, timer accuracy, ETI-660 variant compatibility, or ROM-resident launch. 1979 Netronics interpreter continues to live in low RAM; monitor and verified cassette firmware unchanged.
+
+**Next stage:** Test the user's original ETI-660 `Airplane.hex` game at `$0600` using a two-byte CHIP-8 trampoline `$0200: 16 00`, retaining the same original Netronics interpreter and bootstrapping at `RUN 0E80`; original ETI-660 screen dimensions may differ from the 64x32 Netronics mode. If accepted, design ROM-stored interpreter with low-RAM image-loader preserving separately loaded game bytes.
