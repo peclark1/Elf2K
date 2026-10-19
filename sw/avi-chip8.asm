@@ -1,7 +1,7 @@
 ; Historical 1979 Netronics ELF II CHIP-8 ROM launcher.
 ; Built only in experimental AVI ELF II ROM with AVIELF2 enabled.
 ; Period code is copied byte-for-byte from real-hardware-verified images,
-; EXCEPT FIVE BYTES at interpreter RAM $0105-$0109: restore original RCA
+; EXCEPT THREE CHANGED BYTES within interpreter RAM $0105-$0109: RCA
 ; VIP F-group dispatcher / FX07 handler: 45 A3 98 56 D4.
 ; The 1979 Netronics listing copied 01 B5 F8 56 D4 here, which breaks
 ; FX07 and FX0A (confirmed via RAM-only patch on actual AVI ELF II).
@@ -106,7 +106,7 @@ AVICH8COPY1:
         RETURN
 
 ; The original 1979 Netronics byte strings are maintained except for the
-; five-byte, hardware-verified RCA VIP FX dispatch repair in CORE at $0105.
+; five-byte RCA VIP FX dispatch sequence in CORE at $0105 (only\n; three actual byte differences from the unmodified historical listing).
         .ORG $D800
 AVICH8CORE:
         .DB $C0,$0C,$10,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
