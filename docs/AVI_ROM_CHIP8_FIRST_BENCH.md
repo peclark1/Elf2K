@@ -92,3 +92,31 @@ Compare EF4 with physical INPUT released versus held (repeat while held), then:
 IN 4
 ```
 Compare Port 4 full bytes at idle and while holding keypad 5/A/F. Record both port low nibble and EF4 sense. Key question: does the original Netronics front-panel physical keypad protocol currently reach input port4 and EF4, given J15 COM1 EF4 serial receive jumper? Changing console to COM2 doesn't by itself disconnect the COM1 RX electrical path. Do not modify ROM/jumpers until these reads are known.
+
+
+## 2026-10-19: Port 4 successful, EF4 stuck high — early Netronics S1 analysis
+
+The user sampled `SHOW EF` in the monitor both with front-panel INPUT released and continuously held:
+```
+EF1=0 EF2=0 EF3=0 EF4=1    (INPUT released)
+EF1=0 EF2=0 EF3=0 EF4=1    (INPUT held)
+```
+Then the user executed `IN 4` with no key held, key `5`, key `A`, key `F`:
+```
+Port 4 = 64  (idle)
+Port 4 = 45  (5 pressed)
+Port 4 = 5A  (A pressed)
+Port 4 = AF  (F pressed)
+```
+The low nibble follows the keypad exactly, and the interpreter masks `INP 4` to low 4 bits. **Keypad scanning and port 4 decoding are verified on hardware.** The upper nibble is variable/floating/other signals and not part of the Netronics CHIP-8 keypad code. Idle value $64 needn't identify a key.
+
+Rechecked **owner's actual early-revision Netronics ELF II assembly manual schematic, page 14**: S1 INPUT, A13 two-stage 4049 buffer, D6 diode into EF4, and R26 47K pull-down on the EF4 output node. Expected static **released low / pressed high**, barring transient timing from C8 22µF. Owner's static EF4=1 both ways is abnormal for that circuit but does *not* by itself establish whether the cause is the added Hyperboard, monitor EF4 sampled outside a transient, or the motherboard INPUT control path. Original *Ipso Facto* #11 p36 requires Netronics keypad at I/O4 (6C) and INPUT switch at EF4.
+
+Hyperboard J15 schematic: pin9 labelled EF4 and pin7 is COM1 receive-select circuit; a jumper between J15 pins7/9 can feed EF4 to COM1. **Don't remove J15 EF4 select before a cold boot:** current Pete's Monitor defaults to COM1 Q/EF4 and uses that input for startup autobaud. Disconnecting it could prevent reaching the `COM2` command, even though COM2 works after selecting it.
+
+Next **safe** diagnostic while already communicating over COM2:
+- Probe **J15 pin9 (EF4)** on the Hyperboard, or known CPU EF4 probe point, with DMM/scope referenced to board GND. Compare DC logic levels INPUT released and continuously held, without moving jumpers.
+- If both high, EF4 physically held high: trace contention and S1/D6/R26 on the original motherboard, plus J15-related loading.
+- If level toggles but `SHOW EF` doesn't, reconsider transient pulse/timing or physical EF4 mapping to CDP1802. If button only produces a momentary signal, use a scope/logic analyzer rather than relying on slow CLI sampling.
+- Preserve working ROM while diagnosing; no CHIP-8 code patch justified yet.
+
