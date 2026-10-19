@@ -68,3 +68,12 @@ Earlier patched-RAM testing used a *held* hex key while INPUT was pressed. This 
 The owner identifies the firmware as the ROM supplied for testing in the preceding conversation; the *exact flashed binary SHA-256 has not yet been reconfirmed*. Do not automatically assign this observed result to the separately generated newer programming-package checksum until the binaries are matched.
 
 **Next:** Test FX07 with no RAM patches if not already done on this installed ROM; then load Breakout (1979), Wipe Off and Kaleidoscope (1978) in turn. Keep the proven COM2-first ROM as rollback; leave PR draft pending these game regressions.
+
+
+## Breakout (1979) hardware controls — encoded key and INPUT
+
+On the programmed repaired FXFIX-ROM AVI ELF II + Hyperboard, the owner confirms **Breakout starts and launches the ball when INPUT is pressed**. Paddle motion uses a two-step procedure: **press 4 or 6 to select the direction, then hold the separate INPUT button to move the paddle**. The selected direction continues to apply after releasing the hexadecimal key; INPUT acts like a held-action signal. This is a user-observed behavior, not yet a source-level proof of the exact latch/EF4 mechanism.
+
+This is consistent with the Netronics adaptation's separately encoded hexadecimal keypad data (1802 `INP 4`) and INPUT/EF4 signal; it differs from modern CHIP-8 emulators where holding 4 or 6 alone generally moves the paddle. The earlier FX0A two-square test similarly worked when hex 5 was pressed and released *before* a separate INPUT press. Avoid describing these separate-button observations as a new firmware defect.
+
+Still to be characterized: whether 4 and 6 can switch directions while INPUT stays held; full-game outcomes and other historical games (Wipe Off and Kaleidoscope) are not established by the Breakout control test.
