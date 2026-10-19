@@ -156,3 +156,14 @@ Next bench verification before additional patches:
 4. `EXAMINE 0B20 0B3F` to see whether the previously verified four-square pixel patterns survive the ISR experiment.
 
 If vector or code differs, focus on HEX loading/resident RAM. If code matches and buffer remains correct, prioritize **a vetted independent 1802 CDP1861 ISR/frame timing validation** and investigate I/O port-1 VIDEO ON and interrupt-enable state, rather than changing graphics or reprogramming ROM. Continue preserving 1C62/F30A cassette firmware. Hardware oscillator/CRT are not implicated by these tests because `TEST PIXIE` previously worked on the same setup.
+
+
+## 2026-10-18: Fresh full-image ISR test versus patch-only test
+
+**Owner result:** after running the 29-byte ISR **patch-only** over already-executed CHIP-8 RAM, CRT was completely black and framebuffer $0B20–$0B3F was all zero; vector/handler bytes verified exactly. Then owner loaded **the full** `Netronics-1979-CHIP8-Four-Squares-PIXIE-ISR-TEST.hex` and CRT returned to the **alternating white/patterned-garbage display**.
+
+Checked the actual archived two hex files: the full image does contain both exactly the same IRQ vector **R1=$0E02** and the same 29-byte new handler at $0E00–$0E1C as the patch-only image. The difference is that the full HEX restores all 3584 bytes of interpreter, OS, CHIP-8 test program, RAM working state, and zeroed initial framebuffer, while patch-only restores only two vector bytes and 29 ISR bytes.
+
+**Interpretation:** the earlier patch-only black screen is **not a meaningful fresh-start validation** of the handler. Low-RAM CHIP-8 interpreter state has been mutated by prior execution; patch-only does not reset it. The full-image test must be treated as the valid ISR experiment. This result **does not confirm the modified handler fixes DMA**; apparently it does not produce four stable squares.
+
+**Next smallest useful bench distinction:** after running the full ISR-test HEX and returning to monitor without power-off, `EXAMINE 0B20 0B3F` again. If those pixels match `00 FF .. FF` / `00 81 .. 81`, drawing works while the **new handler** fails to render (check EF1 interrupt timing and whole framebuffer). If pixels are zero/garbage despite full-image load, pursue startup/IRQ register/state corruption before refining the DMA timing. Full HEX and patch-only must only be compared from identical freshly loaded baseline images. No new ROM patch/firmware change performed.
