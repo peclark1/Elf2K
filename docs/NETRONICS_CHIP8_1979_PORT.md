@@ -254,3 +254,16 @@ Two independent complete-RAM hardware diagnostics were created, preserving the *
 2. `sw/chip8-historical/Netronics-1979-CHIP8-Airplane-Bypass-Delay-TEST.hex`: Full actual Airplane unchanged except **`$0614-$0615: F0 07 -> 16 1C`**, skipping the first `F007` delay wait to reach Airplane's update/key test path. This makes gameplay unpaced and may run excessively fast: **diagnostic only**, not a fixed game. Does not rule out other incompatibilities.
 
 Both images are 3590 data bytes, checksums validated, start with **`RUN 0E80`** and should be loaded whole fresh each run due to mutable interpreter RAM. **No hardware test result available yet**. A ZIP for bench use is `Netronics-ELF-II-CHIP8-Airplane-Timer-Diagnostics.zip`.
+
+
+## 2026-10-19: User highlights non-pixel data appearing in frame buffer
+
+User notes from restoration experience that the faint patterned line appearing with the first-only timer-square test often indicates **code, stack, or other data written into the framebuffer**—not a PIXIE sync failure. This is a valuable competing hypothesis.
+
+Original period *Ipso Facto* #11 p38, Table 3: framebuffer `$0B00–$0BFF`; CHIP-8 V-register storage `$0AF0–$0AFF`; bottom video bytes `$0BAC–$0BFF` overlap a **84-byte operating-system stack area**. Page 36 specifically describes the OS stack appearing at the bottom of the display **when using operating-system mode**; whether the same stack activity occurs during this CHIP-8-mode test is not proven. Thus a patterned lower region is compatible with displaying non-graphics RAM; do not conclude it is necessarily stack data without reading the bytes.
+
+Crucially, don't declare the delay timer broken merely because the second square was not visible. The timer diagnostic's code starts `$020A: 62 30 F2 15 F2 07 32 00 12 0E 60 28 D0 18 12 18`; it sets V2=$30, loads the delay timer, polls it back into V2 and then should draw a second square only when V2=0. The period map stores V2 in **`$0AF2`**. To distinguish a timer loop from an interpreter/drawing/memory-display issue **without new ROM or new HEX**, after enough run time use monitor RESET without power loss and examine:
+- `EXAMINE 0AF0 0AFF` — V2 at `$0AF2`: if nonzero, the timer/poll loop may not have completed; if 00 after sufficient runtime, timer likely counted down and follow-on draw/rendering may be the issue. Note this value is not the live 1802 R8 timer, but the last CHIP-8 V2 written by `FX07`.
+- `EXAMINE 0B80 0BFF` — determine whether bytes in the displayed lower half are actually nonzero as expected from the patterned CRT and locate whether in stack-overlap window.
+
+Keep the historical video/interrupt bootstrap untouched, avoid premature CRT-signal diagnosis, and use these memory reads to guide the next test.
