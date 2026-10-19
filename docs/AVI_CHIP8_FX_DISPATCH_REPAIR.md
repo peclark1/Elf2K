@@ -47,9 +47,24 @@ Separate branch: feature/avi-chip8-fx-dispatch-fix, based on hardware-tested COM
 6. Load historical Breakout game-only HEX and launch CHIP8, then test gameplay. Other games can follow. **The whole games are not yet hardware-verified playable** merely from the passing minimal FX0A test.
 7. If the new ROM fails, reinstall previous working COM2-first OneROM; do not change jumpers live.
 
-Do not merge until owner confirms ROM image, not just the RAM patch.
+The owner has now confirmed FX0A from a programmed ROM image, without the RAM interpreter patch. Do not merge until the remaining game regression checks are completed.
 
 
 ## Downloadable programming artifact
 
-The passing `AVI ELF II ROM development build` GitHub Actions run creates an independent `AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM-PROGRAMMING` ZIP with a 32,768-byte binary, corresponding Intel HEX, short README, and SHA-256 checksum manifest. CI runs two clean builds and requires byte-for-byte identical assembled HEX before packaging. The image retains the proven COM2-first 38,400-baud setup and existing experimental OneROM startup-checksum bypass. **Only the RAM patch has been bench verified; this newly compiled ROM awaits bench verification.**
+The passing `AVI ELF II ROM development build` GitHub Actions run creates an independent `AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM-PROGRAMMING` ZIP with a 32,768-byte binary, corresponding Intel HEX, short README, and SHA-256 checksum manifest. CI runs two clean builds and requires byte-for-byte identical assembled HEX before packaging. The image retains the proven COM2-first 38,400-baud setup and existing experimental OneROM startup-checksum bypass. **The owner has now confirmed FX0A on a programmed FXFIX test ROM supplied previously; identify the flashed binary hash before equating it with this separate CI package.**
+
+
+## 2026-10-19 — Owner bench confirmation of programmed FXFIX ROM
+
+The owner reports that the **previously supplied FXFIX test ROM** was programmed and the two-square FX0A diagnostic **works from ROM**, with no manual interpreter RAM fix needed. Crucially, the successful keyboard sequence also works as:
+
+1. Press hexadecimal **5** and release it completely.
+2. Press **INPUT** and release it.
+3. The second square appears.
+
+Earlier patched-RAM testing used a *held* hex key while INPUT was pressed. This new ROM test demonstrates the two actions need not overlap on the tested hardware, consistent with a retained/stable encoded keypad value between the two button presses. This establishes the **FX0A path of the installed FXFIX ROM** is operational. It is not proof that every original CHIP-8 game is playable, nor is it a fresh standalone FX07 ROM test.
+
+The owner identifies the firmware as the ROM supplied for testing in the preceding conversation; the *exact flashed binary SHA-256 has not yet been reconfirmed*. Do not automatically assign this observed result to the separately generated newer programming-package checksum until the binaries are matched.
+
+**Next:** Test FX07 with no RAM patches if not already done on this installed ROM; then load Breakout (1979), Wipe Off and Kaleidoscope (1978) in turn. Keep the proven COM2-first ROM as rollback; leave PR draft pending these game regressions.
