@@ -83,3 +83,14 @@ Machine-level requirements:
 - `Netronics-1979-CHIP8-Maze.hex`: same range, standalone RAM image, SHA256 `64413915199de49f89d798a2aa6f0f1aa44945b315fe971f7f702643ba3d5c35`.
 - Both images were independently generated twice with matching 16-bit byte sums `09E3` and `0466`; each Intel HEX record verified. Full Python reproducible build and user-supplied original Maze included in owner's test ZIP, whose link is present in the project conversation.
 - Hardware acceptance: send Four-Squares HEX to 2400 8N1 monitor → `EXAMINE 0000 0002` expects `C0 0C 10` → `EXAMINE 01F8 01FF` expects `06 30 9B 00 00 E0 00 4B` → `RUN 0000`. Expect four outlined sprites on CDP1861. Only if stable, reset, load Maze HEX and `RUN 0000`. Do NOT program these RAM HEX files into a 32K ROM.
+
+
+## 2026-10-18: Video evidence of repeating garbage/white framebuffer
+
+Owner provided 10.9-second mobile video `IMG_9979.MOV` of a CHIP-8 test on original Netronics ELF II and Panasonic CRT. Frame-by-frame inspection: image repeatedly cycles between **filled pale/white 64x32-looking display rectangle** (at times with a thin horizontal band of scrambled pixels) and a **dense patterned/noisy rectangle**. Position and overall scan geometry remain largely stable; this does **not** resemble a conventional rolling/unsynchronized TV picture. None of the expected four outlined sprites is recognizable. Exact pixel contents vary during the recording. Owner characterized it as “like it's in a loop.”
+
+This **proves the visual output is unstable**, but does not by itself prove whether the source is a bad IRQ entry R1, failure to reinitialize R0 DMA each frame, erroneous video framebuffer memory writes, another assembly/image problem, or the actual deployed HEX file. Prior `TEST PIXIE` runs on this hardware were successful; do not revert to hardware/clock troubleshooting without isolating software behavior.
+
+**Next targeted distinction:** After completing a run of the Four-Squares test and returning to monitor with normal RESET, examine video framebuffer around **`$0B00-$0B5F`** (especially `$0B20-$0B5F`). Table 3 of *Ipso Facto* #11 designates `$0B00-$0BFF` as framebuffer and R0 as DMA pointer. For 64x32 one-byte-per-8-horizontal-pixels sprites at (8,4) and (40,4), top row bytes should begin `$0B21=FF` and `$0B25=FF`, next row `$0B29=81`, `$0B2D=81`; other space mostly 00. If RAM buffer has these patterns but TV shows mostly full white, prioritize R0/IRQ/DMA. If RAM is overwritten/FF/garbage, look at interpreter/OS graphics and state management before tracing DMA. Monitor reset behavior must preserve RAM to make this conclusive. Also verify corrected binary is used and check `$0010-$0017`, `$0100-$0107`.
+
+Keep ROM and hardware unchanged for this narrow diagnostic.
