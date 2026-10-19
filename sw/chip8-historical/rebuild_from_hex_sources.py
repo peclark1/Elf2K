@@ -60,6 +60,8 @@ def rebuild():
             counts[section] += 1
             a += 1
     assert counts == {'OS_TABLE1': 232, 'CHIP8_TABLE2': 112}
+    assert mem[0x10:0x18] == bytes.fromhex('B4F81BA4F801B5F8'), 'BOOT CODE CORRUPTED at $0010'
+    assert mem[0x100:0x108] == bytes.fromhex('00000000F801B5F8'), 'MISSING TABLE 2 PATCH at $0100'
     assert mem[:3] == bytes.fromhex('C00C10')
     assert mem[0x1FA] == 0x9B
     assert mem[0xC70] == 0x69
@@ -70,8 +72,8 @@ def rebuild():
     squares = bytearray(mem)
     squares[0x200:0x21A] = bytes.fromhex('00E060086104A300D0186028D01860086114D0186028D0181218')
     squares[0x300:0x308] = bytes.fromhex('FF818181818181FF')
-    assert (sum(maze) & 0xFFFF) == 0x0466
-    assert (sum(squares) & 0xFFFF) == 0x09E3
+    assert (sum(maze) & 0xFFFF) == 0x07F7
+    assert (sum(squares) & 0xFFFF) == 0x0D74
     for filename, image in (('Netronics-1979-CHIP8-Maze.hex', maze), ('Netronics-1979-CHIP8-Four-Squares.hex', squares)):
         write_hex(ROOT / filename, bytes(image))
         assert read_hex(ROOT / filename) == dict(enumerate(image))
