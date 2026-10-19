@@ -7,11 +7,12 @@ import sys
 
 SIZE = 32768
 BASE = 0x8000
-RESERVED = ((0xA100, 0xA400, "SEDIT"), (0xB100, 0xC200, "Visual/02 deferred"), (0xD000, 0xF000, "reserved after cassette services"), (0xF100, 0xF300, "reserved after Giant Monitor"))
+RESERVED = ((0xA100, 0xA400, "SEDIT"), (0xB100, 0xC200, "Visual/02 deferred"), (0xDD00, 0xF000, "reserved above CHIP-8 archive"), (0xF100, 0xF300, "reserved after Giant Monitor"))
 ACTIVE = (
     (0x8000, 0x9800, "monitor"), (0x9800, 0xA100, "AVI help"),
     (0xA400, 0xB100, "EDTASM"),
     (0xC200, 0xD000, "AVI cassette monitor service"),
+    (0xD000, 0xDD00, "1979 Netronics CHIP-8 launcher and archive"),
     (0xF000, 0xF100, "original Giant Monitor"),
     (0xF300, 0x10000, "BIOS"),
 )
@@ -72,6 +73,12 @@ def validate(path: Path) -> None:
         raise ValueError("UART monitor command dispatch not present")
     if rom[0x7000:0x7008] != bytes.fromhex("90A1B3B4B5B6B7F8"):
         raise ValueError("Original Giant Monitor signature missing at CPU F000")
+    if bytes([5]) + b"CHIP8\x00" not in monitor:
+        raise ValueError("CHIP8 monitor command dispatch not present")
+    if rom[0x5800:0x5810] != bytes.fromhex("C00C1000000000000000000000000000"):
+        raise ValueError("Historic CHIP-8 kernel bytes missing at CPU D800")
+    if rom[0x5A00:0x5A10] != bytes.fromhex("F80CB2F806A2E2D2F8FFA1F80BB13028"):
+        raise ValueError("Netronics VIP OS bytes missing at CPU DA00")
     if bytes.fromhex("650063196399") not in extended_bios:
         raise ValueError("CDP1863/CDP1854 control sequence missing")
     # romcksum -c32764: physical 7FFC/7FFD correction, 7FFE/7FFF
