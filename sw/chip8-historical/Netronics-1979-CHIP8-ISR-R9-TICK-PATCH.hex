@@ -1,0 +1,8 @@
+# CHIP-8 video ISR follow-up: restore R9 increment at end of frame
+# Requires prior Netronics-1979-CHIP8-PIXIE-ISR-PATCH-ONLY.hex already loaded in RAM.
+# Original 1979 ISR contains INC R9 (19) at $0D4B.
+# New ISR previously skipped this heartbeat; patch its exit path:
+#   $0E1B: 30 00 -> 19 30 00  (INC R9; BR $0E00)
+# No changes to scanline/DMA timing loop, ROM, or cassette code.
+:030E1B001930008B
+:00000001FF
