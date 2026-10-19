@@ -122,3 +122,22 @@ Examining *Ipso Facto* #11 printed **page 38**, Table 3, after the owner's succe
 - **New controlled test:** change just one byte of CHIP-8 program from **`$0211: 14 -> 0C`**, moving the lower squares to Y=$0C (12). Now their 8 scanlines occupy only framebuffer rows 12..19 (ending $0B9F), below stack overlap. No other interpreter/ISR bytes change. This can be done in RAM from monitor with `DEPOSIT 0211 0C`, `EXAMINE 020E 0213` expecting `60 08 61 0C D0 18`, then `RUN 0000`.
 - This test is also preserved in `sw/chip8-historical/Netronics-1979-CHIP8-Four-Squares-STACK-SAFE.hex` (3584B Intel HEX, valid record checksums, whole-image 16-bit byte sum `0D6C`). Same historical 1979 interpreter as the corrected prior image; not a ROM firmware change.
 - If stable now, explore memory overlap and OS/runtime register usage; if **still white/garbage**, refocus on 1861 interrupt/DMA timing, using proven `TEST PIXIE` ISR, rather than repeatedly changing CHIP-8 drawing routines.
+
+
+## 2026-10-18: Stack-safe sprites still show garbage; isolated video ISR test
+
+Owner loaded the stack-safe Four-Squares variant and confirmed `EXAMINE 0210` shows **`61 0C`**, then `RUN 0000` produced **the same alternating white and garbage** on the CRT. This **eliminates the specific test-sprite/OS-stack overlap hypothesis** as an explanation for this video symptom.
+
+A new isolated RAM test is prepared. Unlike earlier guessing at CHIP-8 draw routines, this changes only the display ISR and its R1 startup vector while keeping the 1979 interpreter, the game at $0200 and the graphic buffer at $0B00 unchanged.
+
+- `sw/chip8-historical/Netronics-1979-CHIP8-Four-Squares-PIXIE-ISR-TEST.hex`: full 3616-byte Intel HEX image ($0000–$0E1F).
+- `sw/chip8-historical/Netronics-1979-CHIP8-PIXIE-ISR-PATCH-ONLY.hex`: **five Intel HEX lines** that overlay an already loaded **STACK-SAFE** image after monitor reset. Patches exactly two existing bytes and installs 29 bytes of ISR code.
+- Changes to old code: `$0C9E: 0D → 0E`, `$0CA1: 46 → 02`; R1 video interrupt PC is now **$0E02**, rather than $0D46.
+- New code at $0E00–$0E1C is derived instruction-by-instruction from the **proven `TEST PIXIE` interrupt/DMA skeleton** in `sw/boots.asm`. It places the `LDXA; RET` return sequence at $0E00–$0E01, so after each interrupt R1 automatically points back to ISR start at $0E02. It begins with NOP to match the monitor's interrupt acknowledgement timing, saves T/D on R2 stack, reloads R0 from video page **RB high=0B / low=00**, and uses the same cycle-timed fourfold horizontal DMA-line repeats while EF1 is asserted.
+- The patch **does not run the original CHIP-8 timing/sound tick logic or increment its RNG**. It is **diagnostic only**; do not use it with Airplane or Maze, which depend on timers/random. It should only run our static Four-Squares.
+- Expected `EXAMINE 0C9D 0CA2`: `F8 0E B1 F8 02 A1`.
+- Expected `EXAMINE 0E00 0E1C`: `72 70 C4 22 78 22 52 9B B0 F8 00 A0 C4 C4 E2 80 E2 20 A0 E2 20 A0 E2 20 A0 3C 0E 30 00`.
+- After `RUN 0000`, four hollow 8x8 squares should display if interrupt-acknowledge/cycle-timing difference caused the corruption. This is **not hardware-validated**. No firmware or hardware configuration changes.
+- If still no stable video, obtain the full frame buffer ($0B00–$0BFF) and inspect display IRQ/DMA path with analyzer. The sprite execution is already hardware-verified by the owner's $0B20–$0B3F framebuffer dump.
+
+Note on proof levels: successful CHIP-8 draw RAM tests, failed video, and this new untested ISR test are separate milestones. The existing 1C62/F30A monitor cassette images are unaffected.
