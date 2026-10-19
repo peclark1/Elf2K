@@ -141,3 +141,18 @@ A new isolated RAM test is prepared. Unlike earlier guessing at CHIP-8 draw rout
 - If still no stable video, obtain the full frame buffer ($0B00–$0BFF) and inspect display IRQ/DMA path with analyzer. The sprite execution is already hardware-verified by the owner's $0B20–$0B3F framebuffer dump.
 
 Note on proof levels: successful CHIP-8 draw RAM tests, failed video, and this new untested ISR test are separate milestones. The existing 1C62/F30A monitor cassette images are unaffected.
+
+
+## 2026-10-18: Hardware ISR substitution yields blank display
+
+The owner reports that following the isolated RAM ISR overlay (published as `Netronics-1979-CHIP8-PIXIE-ISR-PATCH-ONLY.hex`) and `RUN 0000`, **the Panasonic CRT remains black/blank**, rather than alternating white and patterned garbage as before. The stack-safe sprite adjustment had not changed the white/garbage symptom; this ISR patch did change it.
+
+**Do not describe this as a successful video timing fix.** This is a second failed video-output experiment and shows that the ISR path matters, not whether a particular suspected failure mechanism is proven. The ad-hoc ISR is not byte-for-byte the working monitor ISR and omits CHIP-8 frame/sound/timer bookkeeping; it cannot be considered a finished/verified substitute.
+
+Next bench verification before additional patches:
+1. Reset into monitor without power-off.
+2. `EXAMINE 0C9C 0CA3`; expected `A2 F8 0E B1 F8 02 A1 F8`. Confirms R1 handler address $0E02.
+3. `EXAMINE 0E00 0E1F`; expected `72 70 C4 22 78 22 52 9B B0 F8 00 A0 C4 C4 E2 80 E2 20 A0 E2 20 A0 E2 20 A0 3C 0E 30 00 FF FF FF` if just overlay patch was loaded on uninitialized $0E1D–$0E1F those final bytes may be non-FF; only **$0E00–$0E1C** must match.
+4. `EXAMINE 0B20 0B3F` to see whether the previously verified four-square pixel patterns survive the ISR experiment.
+
+If vector or code differs, focus on HEX loading/resident RAM. If code matches and buffer remains correct, prioritize **a vetted independent 1802 CDP1861 ISR/frame timing validation** and investigate I/O port-1 VIDEO ON and interrupt-enable state, rather than changing graphics or reprogramming ROM. Continue preserving 1C62/F30A cassette firmware. Hardware oscillator/CRT are not implicated by these tests because `TEST PIXIE` previously worked on the same setup.
