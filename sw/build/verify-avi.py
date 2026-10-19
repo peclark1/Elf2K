@@ -85,6 +85,16 @@ def validate_chip8_payload(rom: bytes) -> None:
     for low, high in ((0x0000, 0x0200), (0x0C00, 0x0E00)):
         if any(four[a] != maze[a] for a in range(low, high)):
             raise ValueError("Proven CHIP-8 images disagree in core or OS")
+    # Preserve the independent 1979 game/OS reference files byte-for-byte.
+    # The owner's AVI ELF II hardware conclusively confirmed that the 1979
+    # published interpreter broke the original RCA VIP F-group dispatcher.
+    # Only this exact five-byte repair is authorized in the ROM archive.
+    broken_fx = bytes.fromhex("01 B5 F8 56 D4")
+    repaired_fx = bytes.fromhex("45 A3 98 56 D4")
+    if bytes(four[0x0105+i] for i in range(5)) != broken_fx:
+        raise ValueError("Historical reference FX dispatcher unexpectedly changed")
+    if bytes(maze[0x0105+i] for i in range(5)) != broken_fx:
+        raise ValueError("Maze historical reference FX dispatcher unexpectedly changed")
     blocks = (
         ("interpreter", four, 0x0000, 0x0200),
         ("period OS", four, 0x0C00, 0x0200),
@@ -96,13 +106,18 @@ def validate_chip8_payload(rom: bytes) -> None:
     physical = 0xD800 - BASE
     for name, expected, address, size in blocks:
         data = bytes(expected[address+i] for i in range(size))
+        if name == "interpreter":
+            data = data[:0x0105] + repaired_fx + data[0x010A:]
+            if data[0x0105:0x010A] != repaired_fx:
+                raise ValueError("CHIP-8 FX dispatch repair failed construction")
         if rom[physical:physical+size] != data:
             raise ValueError(f"ROM CHIP8 payload differs from bench-proven {name} at ${BASE+physical:04X}")
         physical += size
     if physical != 0xDC4A - BASE:
         raise ValueError("Incorrect CHIP-8 ROM payload size")
-    print("PASS: Netronics CHIP-8 ROM interpreter/OS, FOUR, MAZE and IE=1 bootstrap")
-    print("      All 1098 payload bytes match golden real-hardware RAM test fixtures")
+    print("PASS: Netronics CHIP-8 interpreter/OS, FOUR, MAZE and IE=1 bootstrap")
+    print("      1093 original period payload bytes unchanged; exactly five")
+    print("      FX dispatcher bytes patched to RCA VIP, hardware-verified")
 
 
 def validate(path: Path) -> None:
