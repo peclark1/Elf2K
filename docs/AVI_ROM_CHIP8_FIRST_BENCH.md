@@ -54,3 +54,22 @@ Source and documentation:
 https://github.com/etxmato/emma_02/tree/master/data/Chip-8/Chip-8%20Games
 
 This is the next **compatibility experiment**, with keypad and original EF4/INPUT mapping to verify before claiming full interactive game support.
+
+
+## 2026-10-19: Breakout draws correctly but never responds to keys
+
+Owner loaded historical 1979 Carmelo Cortez Breakout game-only HEX at $0200, then `CHIP8`. The **brick field and paddle draw correctly and remain stable**, but the paddle never moves, and **no hex-key presses alone or combined with physical INPUT**, including holds/repetitions, have any visible effect. Other original VIP games (Kaleidoscope and Wipe Off) to be tested by owner. This does **not** prove keypad input works; the ROM graphics execution path is definitely working.
+
+### Exact 1979 Netronics keyboard evidence and diagnostic decision tree
+
+Period *Ipso Facto* #11 p36 documents Netronics 1979 CHIP-8 keyboard as **HEX pad input port $6C = 1802 `INP 4`**, and INPUT switch on **EF4**. The actual archived period OS contains `INP 4` opcodes at RAM `$0CDC`, `$0CF3`, and `$0D9E`, with `BN4` tests around $0CD1/$0CE9. This code has **not** been adapted for AVI Hyperboard port wiring. It was copied byte-identically from the successful, graphics-only Netronics RAM image.
+
+Review of the actual AVI Hyperboard Rev2 schematic shows **J15 selecting COM1 Q/serial EF input lines including EF4**, even if software console is changed to COM2. Serial receive wiring shared with EF4 is a *potential* contention/lack-of-key-detect source, not established until measured. Do not move J15 or disconnect a receiver until tests; any jumper change must be powered off and COM2 used for console afterwards.
+
+Existing monitor commands **do not require new ROM**. After hardware RESET, with COM2 available:
+1. `SHOW EF` idle, repeat while physically holding front-panel INPUT, repeat after release. Compare **EF4** values. Source confirms `SHOWEF` samples `BN4` and prints `EF4=0/1`.
+2. `IN 4` with no hex key held, then repeatedly **while holding** distinct hex keys 0, 5, A, F (send CR from COM2 while holding). Source confirms `INPUT` handler synthesizes 1802 `INP 4` opcode and reports full read byte in hexadecimal as `Port 4 = xx`. The 1979 interpreter masks to low nibble; examine values & $0F. Keypad number may be latched and require INPUT: test combinations after initial readings.
+3. If port4 changes appropriately but EF4 does **not** change with INPUT, prioritize EF4/J15/COM1 RX contention and actual physical INPUT wiring. If EF4 changes but IN4 doesn't, prioritize 1802 I/O decode for port4 and keypad selection (Netronics early board/Giant Board interface). If both change correctly, inspect 1979 keyboard protocol / latency / CPU sense polarity, and prepare an isolated RAM-only poll before ROM patch.
+4. Do not assume a CHIP-8 FX0A hang versus other issue until these tests. Breakout begins with a key wait after drawing bricks/paddle so this is a high-value source-level hypothesis.
+
+Retain the already successfully hardware-tested CHIP8 ROM image and cassette/serial features. Next changes should be small, reversible, and based on sampled I/O data.
