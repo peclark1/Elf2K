@@ -37,3 +37,20 @@ The AVI GitHub Actions workflow performs two clean builds and byte-for-byte comp
 Build: `bash sw/build/build-avi.sh`; OneROM conversion: `python3 sw/build/prepare-one-rom.py .build/avi-rom/work/AVIElf2.hex .build/avi-rom/work`.
 
 Keep this change as a draft until the user verifies **FOUR and Maze launched from ROM** and existing COM2/cassette commands have not regressed.
+
+
+## 2026-10-19: Owner hardware success and historical games shortlist
+
+After receiving the ROM-integrated test, owner reported **"works perfectly"**. This confirms successful real ELF II execution of the integrated ROM feature following the test guidance for `CHIP8 FOUR`/`CHIP8 MAZE`, not just standalone RAM execution. No report was provided yet verifying game keypad input, timer behavior, or regression testing of cassette modes following this flash; retain those as separate test statuses.
+
+Three additional public-domain-era **original RCA COSMAC VIP / original 64x32 CHIP-8** game-only Intel HEX files were selected and source-preserved from the Emma 02 archive, committed under `sw/chip8-netronics/games/`:
+- `CHIP8-KALEIDOSCOPE-1978.hex`: 128 bytes $0200-$027F, Joseph Weisbecker's original 1978 VIP Kaleidoscope. **First interactive keypad test**: press 2,4,6,8 to build a pattern, then press 0 to loop; historical example is 44444442220.
+- `CHIP8-WIPE-OFF.hex`: 208 bytes $0200-$02CF, Joseph Weisbecker's Wipe Off. 4 and 6 control paddle; includes CHIP-8 FX0A wait-for-key.
+- `CHIP8-BREAKOUT-1979.hex`: 240 bytes $0200-$02EF, Carmelo Cortez's 1979 Breakout. Variation of Wipe Off with six walls and 20 balls, paddle controlled by 4 and 6.
+
+All records have valid Intel HEX checksums; none uses ETI-660 64x48 format or loads outside the monitor's preserved game memory range $0200-$09FF. **No hardware test yet** for these three programs. Test: send ONE game-only Intel HEX to monitor; command `CHIP8` (no arguments); hardware RESET to exit; next game can be loaded the same way. The normal `CHIP8` ROM command installs the resident 1979 Netronics interpreter/OS and enables 1802 IE while preserving loaded $0200-$09FF. Avoid `CHIP8 FOUR`/`CHIP8 MAZE` when launching a third-party game because those commands overwrite $0200 bytes with their bundled demos.
+
+Source and documentation:
+https://github.com/etxmato/emma_02/tree/master/data/Chip-8/Chip-8%20Games
+
+This is the next **compatibility experiment**, with keypad and original EF4/INPUT mapping to verify before claiming full interactive game support.
