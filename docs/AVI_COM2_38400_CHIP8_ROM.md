@@ -31,3 +31,8 @@ The hardware baud rate is controlled by the **physical Hyperboard CDP1863/CDP185
 **Do not toggle J15 live again.** COM2-first boot eliminates the need for that workaround.
 
 Software CI can validate assembler, ROM layout, checksum, golden 1098-byte period CHIP8 contents, and byte-stable clean rebuilds. Actual UART startup on real Hyperboard **must still be tested by owner**.
+
+
+## Owner hardware confirmation: COM2-first startup (2026-10-19)
+
+Owner reports: **"works perfect! com2 started right up at 38400 in the monitor"** on the real AVI ELF II clone + AVI Hyperboard. This establishes that the experimental COM2-first ROM cold-start/monitor path works on the physical board at **38400 baud, 8N1**. No need for COM1 autobaud at startup. It does **not** yet establish that J15 removal plus COM2 enables original CHIP-8 keyboard routines to recognize FX0A, or confirm ROM regressions; those remain pending bench tests. Preserve previously hardware-verified ROM until other functions have been checked.
