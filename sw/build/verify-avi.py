@@ -51,6 +51,60 @@ def image_from_hex(path: Path) -> bytes:
         raise ValueError(f"Incomplete ROM: EOF={eof}, coverage={len(visited)}/{SIZE}")
     return bytes(data)
 
+def validate_chip8_payload(rom: bytes) -> None:
+    """Verify ROM-resident Netronics code against two REAL-HARDWARE-PROVEN
+    period image files, rather than trusting the hand-written .DB listing.
+    """
+    fixture_dir = Path(__file__).resolve().parent.parent / "chip8-netronics"
+
+    def read_1802_hex(filename: str) -> dict[int, int]:
+        memory: dict[int, int] = {}
+        seen_eof = False
+        for line in (fixture_dir / filename).read_text("ascii").splitlines():
+            record = bytes.fromhex(line[1:])
+            if not line.startswith(":") or len(record) != 5 + record[0] or sum(record) % 256:
+                raise ValueError(f"Invalid CHIP-8 golden Intel HEX record: {filename}")
+            address = int.from_bytes(record[1:3], "big")
+            if record[3] == 1:
+                if record[0] != 0 or seen_eof:
+                    raise ValueError("Invalid CHIP-8 golden EOF")
+                seen_eof = True
+            elif record[3] == 0 and not seen_eof:
+                for i, b in enumerate(record[4:-1]):
+                    if address + i in memory:
+                        raise ValueError("CHIP-8 golden duplicate address")
+                    memory[address + i] = b
+            else:
+                raise ValueError("Unsupported CHIP-8 golden record")
+        if not seen_eof:
+            raise ValueError("Missing CHIP-8 golden EOF")
+        return memory
+
+    four = read_1802_hex("Netronics-1979-CHIP8-Four-Squares-INTERRUPTS-ON.hex")
+    maze = read_1802_hex("Netronics-1979-CHIP8-Maze-INTERRUPTS-ON.hex")
+    for low, high in ((0x0000, 0x0200), (0x0C00, 0x0E00)):
+        if any(four[a] != maze[a] for a in range(low, high)):
+            raise ValueError("Proven CHIP-8 images disagree in core or OS")
+    blocks = (
+        ("interpreter", four, 0x0000, 0x0200),
+        ("period OS", four, 0x0C00, 0x0200),
+        ("four-square game", four, 0x0200, 0x001A),
+        ("four-square sprite", four, 0x0300, 0x0008),
+        ("maze game", maze, 0x0200, 0x0022),
+        ("interrupt-enable stub", four, 0x0E80, 0x0006),
+    )
+    physical = 0xD800 - BASE
+    for name, expected, address, size in blocks:
+        data = bytes(expected[address+i] for i in range(size))
+        if rom[physical:physical+size] != data:
+            raise ValueError(f"ROM CHIP8 payload differs from bench-proven {name} at ${BASE+physical:04X}")
+        physical += size
+    if physical != 0xDC4A - BASE:
+        raise ValueError("Incorrect CHIP-8 ROM payload size")
+    print("PASS: Netronics CHIP-8 ROM interpreter/OS, FOUR, MAZE and IE=1 bootstrap")
+    print("      All 1098 payload bytes match golden real-hardware RAM test fixtures")
+
+
 def validate(path: Path) -> None:
     rom = image_from_hex(path)
     for start, stop, name in RESERVED:
@@ -98,6 +152,7 @@ def validate(path: Path) -> None:
         raise ValueError(f"Checksum/correction mismatch: got {rom[-4:].hex()}, expected {(correction+expected).hex()}")
     if (sum(rom) & 0xFFFF) != int.from_bytes(expected, "big"):
         raise ValueError("Whole-ROM sum does not equal embedded checksum")
+    validate_chip8_payload(rom)
     print(f"PASS: {len(rom)} ROM bytes, STG checksum {expected.hex().upper()}")
     print("SHA256 (binary ROM): " + hashlib.sha256(rom).hexdigest())
     for start, stop, name in ACTIVE:
