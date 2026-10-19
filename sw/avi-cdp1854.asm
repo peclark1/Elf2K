@@ -3,8 +3,9 @@
 ; This module is incorporated into the DISPOSABLE Rc/Asm bios source by
 ; sw/build/avi-port.py, replacing the stock 8250/16550 UART implementation.
 ;
-; This is an experimental 9600 8N1 backend, activated only with the monitor
-; UART command. This ROM variant starts on Q/EF4. The Q/EF3 875B baseline remains separate.
+; CDP1854 MODE 1 backend shared by all COM2 commands. The dedicated test
+; ROM boots directly into COM2 38400 8N1 with the Hyperboard x16 clock
+; configured for 614400 Hz. Previous Q/EF4 boot ROM remains untouched.
 ;
 ; Hardware assumptions to verify:
 ;   CDP1854 MODE=1; CS1=N1; RSEL=N0; CS3 asserted; CS2 controlled by J14.
@@ -79,7 +80,7 @@ avi_tx_wait:
         dec     r2             ; OUT increments R(X): restore stack
         sep     sret
 
-; Initial experimental setting for 2.4576 MHz oscillator and divider.
+; Same initialization sequence is used at all owner-verified COM2 rates.
 ; If a board uses different jumpers/clock source, OUT 5 may not load A14.
 ; D = old Elf2K port parameters (currently ignored; fixed 9600 8N1).
 e2k_stbd:

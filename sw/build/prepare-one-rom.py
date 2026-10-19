@@ -99,9 +99,10 @@ def main() -> None:
     to_hex(patched, a.output_dir / (prefix + ".hex"))
     (a.output_dir / "AVIElf2-Netronics-assembled.bin").write_bytes(assembled)
     report = (
-        "EXPERIMENTAL AVI Netronics ROM with CHIP-8 — NEW IMAGE NOT BENCH TESTED\n"
+        "AVI COM2-FIRST 38400 CHIP8 ROM — NEW BOOT PATH NOT BENCH TESTED\n"
         "Preserve the previously verified 1C62 / F30A OneROM backup for rollback.\n"
-        "Set COM1 physical RX jumper to EF4 before testing this image.\n"
+        "COM2 38400 8N1 boots directly; J15 COM1-to-EF4 jumper may be removed at power-off.\n"
+        "Ensure existing Hyperboard COM2 x16 clock is 614400 Hz and Tera Term 38400 8N1.\n"
         "COM2 9600/19200/38400 owner tested with matching external UART clocks.\n"
         "One ROM test image bypasses the unresolved startup ROM checksum scan.\n"
         f"Patch at CPU ${0x8000+romchk:04X}-${0x8000+romchk+2:04X}: "

@@ -1,10 +1,10 @@
 # AVI ELF II / Hyperboard — Netronics-compatible development ROM.
 # Comments beginning with # ignored by romtext.
-AVI ELF II / NETRONICS-COMPATIBLE ROM (EXPERIMENTAL)
-Default: COM1 Q/EF4 2400 baud; press CR for autobaud.
+AVI ELF II / CHIP-8 COM2-FIRST 38400 ROM (TEST BUILD)
+Default: COM2 CDP1854 38400 8N1 (614400 Hz x16 clock).
 
 SERIAL CONSOLE
-    COM1  or  1            -- Q/EF4 COM1, re-autobaud on return
+    COM1  or  1            -- Q/EF4 manual fallback only; needs J15
     COM2  or  2            -- CDP1854 COM2 at 9600 baud
     COM2 9600 / 2 9600    -- explicit supported rate
     COM2 19200 / 38400    -- verified with correct x16 clocks (8N1)
