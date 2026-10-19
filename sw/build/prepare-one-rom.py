@@ -99,10 +99,10 @@ def main() -> None:
     to_hex(patched, a.output_dir / (prefix + ".hex"))
     (a.output_dir / "AVIElf2-Netronics-assembled.bin").write_bytes(assembled)
     report = (
-        "EXPERIMENTAL AVI Netronics ROM — NOT HARDWARE VALIDATED\n"
-        "Never replace the working 875B One ROM reference.\n"
+        "EXPERIMENTAL AVI Netronics ROM with CHIP-8 — NEW IMAGE NOT BENCH TESTED\n"
+        "Preserve the previously verified 1C62 / F30A OneROM backup for rollback.\n"
         "Set COM1 physical RX jumper to EF4 before testing this image.\n"
-        "COM2 9600 supported; 19200/38400 safely rejected.\n"
+        "COM2 9600/19200/38400 owner tested with matching external UART clocks.\n"
         "One ROM test image bypasses the unresolved startup ROM checksum scan.\n"
         f"Patch at CPU ${0x8000+romchk:04X}-${0x8000+romchk+2:04X}: "
         + old_instruction.hex().upper() + " -> " + replacement.hex().upper() + "\n"

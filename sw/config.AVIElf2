@@ -8,7 +8,10 @@
 # $A100-$A3FF                768 bytes    reserved
 # $A400-$B0FF               3328 bytes    EDTASM (XMODEM S/L disabled)
 # $B100-$C1FF               4352 bytes    reserved
-# $C200-$EFFF              11776 bytes    reserved for future services
+# $C200-$CFFF               3584 bytes    cassette service + padding
+# $D000-$D7FF               2048 bytes    CHIP-8 loader + ROM spare
+# $D800-$DCFF               1280 bytes    1979 CHIP-8 interpreter/OS/games
+# $DD00-$EFFF               4864 bytes    reserved for future services
 # $F000-$F0FF                256 bytes    ORIGINAL GIANT MONITOR, unchanged
 # $F100-$F2FF                512 bytes    reserved
 # $F300-$FFFF               3328 bytes    extended BIOS/BIOS
@@ -17,8 +20,8 @@
 # in disposable AVI assembler input by avi-port.py.
 # COM1 bit-banged Q/EF4 default, nominal 2400. Requires EF4 hardware jumper.
 # COM2 CDP1854 is optional: 9600 8N1 presently proven.
-# COM2 19200/38400 enabled as external-clock test modes; J10/J11 clock must
-# be physically configured for x16 baud (307.2/614.4 kHz), with power OFF.
+# COM2 19200 and 38400 owner hardware tested successfully (October 2026).
+# External TCLK/RCLK must match selected x16 baud (307.2/614.4 kHz).
 # Netronics Tiny BASIC executes separately from RAM starting at $0000.
 #
 # This configuration affects ONLY the AVI variant; stock Elf2K builds intact.
@@ -32,3 +35,8 @@ EBIOS=0F800H
 EDTASM=0A400H
 GIANT=0F000H
 PIXIE=1
+
+# ROM CHIP8 commands copy the verified 1979 Netronics interpreter to RAM,
+# retaining loaded game RAM 0200-09FF and enabling 1802 interrupts via 0E80.
+# Experimental ROM build; four-squares and Maze command paths still await
+# verification on hardware after their integration into this firmware.

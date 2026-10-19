@@ -7,7 +7,7 @@ SERIAL CONSOLE
     COM1  or  1            -- Q/EF4 COM1, re-autobaud on return
     COM2  or  2            -- CDP1854 COM2 at 9600 baud
     COM2 9600 / 2 9600    -- explicit supported rate
-    COM2 19200 / 38400    -- hardware-clock test modes (8N1)
+    COM2 19200 / 38400    -- verified with correct x16 clocks (8N1)
     UART                   -- alias for COM2
 
 PROGRAM CONTROL
@@ -16,6 +16,15 @@ PROGRAM CONTROL
     CONT[inue]             -- resume from breakpoint
     ASM [NEW|OLD]          -- editor/assembler
     RUN F000               -- ORIGINAL 256-BYTE GIANT MONITOR
+
+CHIP-8 -- 1979 NETRONICS INTERPRETER (64x32 PIXIE)
+    CHIP8 FOUR             -- built-in four-square video demo
+    CHIP8 MAZE             -- built-in Maze game
+    CHIP8                  -- run a CHIP-8 program loaded at 0200
+    Loads original interpreter/OS from ROM into low RAM; keeps
+    0200-09FF game RAM; clears 0A00-0BFF; enables interrupts.
+    Reset to exit.  No terminal while PIXIE DMA is active.
+    ETI-660 64x48 programs are not generally compatible.
 
 CASSETTE - Q output / EF2 input; Netronics tape format
   CASSAVE start end   -- record inclusive RAM range
