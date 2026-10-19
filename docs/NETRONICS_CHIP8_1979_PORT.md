@@ -211,3 +211,10 @@ This is strong hardware evidence that **disabled CPU interrupts at monitor `RUN`
 Next test artifact: `sw/chip8-historical/Netronics-1979-CHIP8-Maze-INTERRUPTS-ON.hex` (complete image), same interpreter/OS and same six-byte bootstrap as proven Four-Squares, with original Maze at $0200. Upload entire Intel HEX, `EXAMINE 0E80 0E85` expected `E0 70 00 C0 0C 10`, run **`RUN 0E80`**. No ROM programming required.
 
 ROM design implication: eventual built-in monitor `CHIP8` launcher MUST explicitly enable 1802 interrupts when handing off to historical interpreter and provide correct R1 ISR / R0 DMA initialization. A mere `RUN 0000` jump from a monitor with IE=0 is not sufficient.
+
+
+## COM2 serial hardware milestone — 2026-10-18
+
+While uploading the post-graphics-success Maze HEX test, owner independently reported **COM2 (CDP1854 hardware UART) operating successfully at both 19,200 and 38,400 baud** on real AVI ELF II Hyperboard hardware. These two baud selections, previously described as experimental/awaiting test, are now **hardware-confirmed by the owner**. The physical UART clock/jumper arrangements, any error-rate tests, and prolonged-transfer reliability metrics were not reported in this update; do not infer exact jumper pin positions or claim exhaustive stress testing.
+
+No firmware code changes were needed for this observation. The Netronics CHIP-8 ROM integration remains a separate pending task.
