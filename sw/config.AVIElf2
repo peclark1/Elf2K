@@ -18,7 +18,8 @@
 #
 # CDP1861/PIXIE test enabled; original Weisbecker bitmap substituted
 # in disposable AVI assembler input by avi-port.py.
-# COM1 bit-banged Q/EF4 default, nominal 2400. Requires EF4 hardware jumper.
+# THIS TEST VARIANT DEFAULTS DIRECTLY TO COM2 38400 8N1; no COM1 EF4 jumper needed.
+# COM1 Q/EF4 retained as an opt-in command only; restoring J15 required to use it.
 # COM2 CDP1854 is optional: 9600 8N1 presently proven.
 # COM2 19200 and 38400 owner hardware tested successfully (October 2026).
 # External TCLK/RCLK must match selected x16 baud (307.2/614.4 kHz).
