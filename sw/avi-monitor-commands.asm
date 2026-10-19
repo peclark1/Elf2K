@@ -5,6 +5,28 @@
 ; COM2 UART 8N1: 9600 tested; 19200/38400 are external-clock bench modes.
 
 #ifdef AVIELF2
+; Dedicated COM2-first test ROM. Called from TTYINI *before the banner*.
+; CDP1854 x16 clock must already be physically set to 614400 Hz.
+; The proven AVIUSET sequence initialized this UART in previous ROMs;
+; here we apply the same hardware setup without emitting any text on COM1.
+AVICOM2BOOTINIT:
+        LDI $34
+        CALL(F_USETBD)
+        LBDF AVICOM2BOOTFAIL
+        RLDI(DP,BAUD1)
+        LDI $01              ; BAUD.1 = 1 => hardware UART + echo
+        PHI BAUD
+        STR DP               ; persist COM2 selection across MAIN1
+        INC DP
+        LDI $34
+        STR DP               ; BAUD0 saved UART format
+        RETURN
+AVICOM2BOOTFAIL:
+        ; Fail visibly on LEDs rather than silently blocking in COM1 autobaud.
+        ; Never attempt to read bitbang EF4 on the CHIP8 dedicated build.
+        OUTI(LEDS,$E2)
+        LBR AVICOM2BOOTFAIL
+
 ; Console switch to Q/EF4 bitbang. The confirmation is emitted on the
 ; currently active console; BIOS F_SETBD then waits for a CR on COM1.
 AVICOM1: CALL(ISEOL)
