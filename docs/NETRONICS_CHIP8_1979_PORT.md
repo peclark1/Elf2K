@@ -198,3 +198,16 @@ New complete full-load HEX file `sw/chip8-historical/Netronics-1979-CHIP8-Four-S
 A proposed experimental DMA loop fix `$0E1A: 0E→0D` was **withdrawn after checking precise byte addresses**. In the experimental ISR, **`$0E0E=E2 (SEX R2)`** and `$0E19=3C $0E1A=0E` correctly branches to that instruction. The 1979 ISR uses different timing code; the copied test does not have the initially alleged one-byte branch error. The incorrectly modified loop-fix HEX was deleted from the branch before being offered as a test. The true significant difference is the **interrupt-enable state on entry**, still pending bench validation.
 
 If the new full-load IE-enabled test still fails, next isolate **RAM-based CDP1861 DMA** versus the previously validated ROM-based `TEST PIXIE` using a purpose-built native 1802 RAM framebuffer viewer. Do not change hardware/jumpers or the cassette ROM for this check.
+
+
+## 2026-10-19: MAJOR BENCH PASS — period Netronics CHIP-8 video stable with IE enabled
+
+**HARDWARE-VERIFIED SUCCESS**: Owner tested the full `Netronics-1979-CHIP8-Four-Squares-INTERRUPTS-ON.hex` on his original Netronics ELF II + AVI Hyperboard + Panasonic CRT; ran **`RUN 0E80`** instead of `RUN 0000`. Owner supplied photograph demonstrating **stable correctly rendered four-square CHIP-8 graphics** (two columns, with vertically adjacent top and lower squares; this adjacency is expected after moving the lower squares to Y=$0C). The previously persistent white/garbage cycling disappeared.
+
+This is strong hardware evidence that **disabled CPU interrupts at monitor `RUN` entry** were the primary blocker for the historical CHIP-8 video experiment. Prior CRT/clock, drawing instructions and framebuffer were working. The six-byte RAM bootstrap `$0E80: E0 70 00 C0 0C 10` uses `SEX R0; RET` to set X=P=0 **and IE=1**, then `LBR $0C10` into 1979 startup. The historical Netronics $0D46 ISR and normal video DMA now work; no ROM rewrite or hardware modifications.
+
+**Verified**: rendering/graphics dispatch, IRQ enable bootstrap, interrupt-synchronized CDP1861 graphics on real hardware. **Not verified yet**: keypad input, timers/beep, full Maze game, ETI-660 Airplane compatibility, or ROM-resident `CHIP8` monitor command. Do NOT promote them to complete.
+
+Next test artifact: `sw/chip8-historical/Netronics-1979-CHIP8-Maze-INTERRUPTS-ON.hex` (complete image), same interpreter/OS and same six-byte bootstrap as proven Four-Squares, with original Maze at $0200. Upload entire Intel HEX, `EXAMINE 0E80 0E85` expected `E0 70 00 C0 0C 10`, run **`RUN 0E80`**. No ROM programming required.
+
+ROM design implication: eventual built-in monitor `CHIP8` launcher MUST explicitly enable 1802 interrupts when handing off to historical interpreter and provide correct R1 ISR / R0 DMA initialization. A mere `RUN 0000` jump from a monitor with IE=0 is not sufficient.
