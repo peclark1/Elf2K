@@ -1,7 +1,10 @@
 ; Historical 1979 Netronics ELF II CHIP-8 ROM launcher.
 ; Built only in experimental AVI ELF II ROM with AVIELF2 enabled.
-; Data taken byte-for-byte from the *real hardware verified* Netronics
-; Four-Squares and Maze RAM HEX images, including Ipso Facto #12 erratum.
+; Period code is copied byte-for-byte from real-hardware-verified images,
+; EXCEPT THREE CHANGED BYTES within interpreter RAM $0105-$0109: RCA
+; VIP F-group dispatcher / FX07 handler: 45 A3 98 56 D4.
+; The 1979 Netronics listing copied 01 B5 F8 56 D4 here, which breaks
+; FX07 and FX0A (confirmed via RAM-only patch on actual AVI ELF II).
 ; No changes to historic period OS IRQ handler ($0D46).
 ;
 ; Commands:
@@ -102,7 +105,8 @@ AVICH8COPY1:
         LBNZ AVICH8COPY1
         RETURN
 
-; Each bytestring follows verified 1979 Netronics hardware test images.
+; The original 1979 Netronics byte strings are maintained except for the
+; five-byte RCA VIP FX dispatch sequence in CORE at $0105 (only\n; three actual byte differences from the unmodified historical listing).
         .ORG $D800
 AVICH8CORE:
         .DB $C0,$0C,$10,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -121,7 +125,7 @@ AVICH8CORE:
         .DB $5C,$2C,$16,$8C,$FC,$08,$AC,$3B,$B3,$F8,$FF,$A6,$87,$56,$12,$D4
         .DB $9B,$BF,$F8,$FF,$AF,$93,$5F,$8F,$32,$DF,$2F,$30,$E5,$00,$42,$B5
         .DB $42,$A5,$D4,$8D,$A7,$87,$32,$AC,$2A,$27,$30,$F5,$00,$00,$00,$00
-        .DB $00,$00,$00,$00,$F8,$01,$B5,$F8,$56,$D4,$F8,$0D,$BC,$F8,$95,$AC
+        .DB $00,$00,$00,$00,$F8,$45,$A3,$98,$56,$D4,$F8,$0D,$BC,$F8,$95,$AC
         .DB $22,$DC,$12,$56,$D4,$06,$B8,$D4,$06,$A8,$D4,$64,$0A,$01,$E6,$8A
         .DB $F4,$AA,$3B,$28,$9A,$FC,$01,$BA,$D4,$F8,$0D,$BA,$06,$FA,$0F,$AA
         .DB $0A,$AA,$D4,$F8,$0C,$BC,$F8,$AD,$AC,$DC,$30,$53,$00,$F8,$0C,$BC

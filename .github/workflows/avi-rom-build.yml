@@ -6,6 +6,7 @@ on:
       - feature/avi-elf2-hyperboard-rom
       - feature/avi-netronics-compatible-rom
       - feature/avi-com2-38400-default-chip8
+      - feature/avi-chip8-fx-dispatch-fix
   pull_request:
   workflow_dispatch:
 
@@ -26,6 +27,23 @@ jobs:
           python3 sw/build/verify-avi.py .build/avi-pass2/work/AVIElf2.hex
       - name: Prepare labelled One ROM diagnostic binary and Intel HEX
         run: python3 sw/build/prepare-one-rom.py .build/avi-pass1/work/AVIElf2.hex .build/avi-pass1/work
+      - name: Package checksum-identified FXFIX programming files
+        run: |
+          cd .build/avi-pass1/work
+          test "$(wc -c < AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.bin)" -eq 32768
+          sha256sum AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.bin \
+                    AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.hex > SHA256SUMS-FXFIX.txt
+          sha256sum --check SHA256SUMS-FXFIX.txt
+      - name: Upload FXFIX OneROM programming ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM-PROGRAMMING
+          path: |
+            .build/avi-pass1/work/AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.bin
+            .build/avi-pass1/work/AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.hex
+            .build/avi-pass1/work/README-Netronics-OneROM-EXPERIMENTAL.txt
+            .build/avi-pass1/work/SHA256SUMS-FXFIX.txt
+          if-no-files-found: error
       - name: Upload development artifacts
         if: always()
         uses: actions/upload-artifact@v4
