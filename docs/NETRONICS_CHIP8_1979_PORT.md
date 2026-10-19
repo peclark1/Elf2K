@@ -94,3 +94,19 @@ This **proves the visual output is unstable**, but does not by itself prove whet
 **Next targeted distinction:** After completing a run of the Four-Squares test and returning to monitor with normal RESET, examine video framebuffer around **`$0B00-$0B5F`** (especially `$0B20-$0B5F`). Table 3 of *Ipso Facto* #11 designates `$0B00-$0BFF` as framebuffer and R0 as DMA pointer. For 64x32 one-byte-per-8-horizontal-pixels sprites at (8,4) and (40,4), top row bytes should begin `$0B21=FF` and `$0B25=FF`, next row `$0B29=81`, `$0B2D=81`; other space mostly 00. If RAM buffer has these patterns but TV shows mostly full white, prioritize R0/IRQ/DMA. If RAM is overwritten/FF/garbage, look at interpreter/OS graphics and state management before tracing DMA. Monitor reset behavior must preserve RAM to make this conclusive. Also verify corrected binary is used and check `$0010-$0017`, `$0100-$0107`.
 
 Keep ROM and hardware unchanged for this narrow diagnostic.
+
+
+## 2026-10-18 hardware proof: CHIP-8 draw engine works; video output remains unstable
+
+After running the **corrected** 1979 Four-Squares test, the owner RESET to the AVI monitor without power loss and ran `EXAMINE 0B20 0B3F`. **Observed exactly**:
+
+```
+0B20 00 FF 00 00 00 FF 00 00 00 81 00 00 00 81 00 00
+0B30 00 81 00 00 00 81 00 00 00 81 00 00 00 81 00 00
+```
+
+These are the **precise expected pixel bytes** from the four-square CHIP-8 test, as predicted before inspection. This proves CHIP-8 instruction dispatch, the test program's drawing operations, RAM persistence, and at least this portion of the graphics framebuffer at **$0B00–$0BFF** all work on real hardware. The continuing alternating white/garbage CRT display is therefore **not caused by incorrect pixels in these rows of RAM**. It does not yet establish that all 256 framebuffer bytes are good or that the interpreter's video ISR is correct.
+
+**Important comparator:** the previously proven AVI ROM `TEST PIXIE` uses the carefully cycle-timed **`INT1PG`** handler in `sw/boots.asm`, which starts with an explicit `NOP` to correct interrupt-ACK timing, saves T/D, reloads **R0** with the image pointer, repeats DMA lines four times and branches on EF1. The historical CHIP-8 variant's R1 target **$0D46** has a different ISR prologue in the relocated VIP OS image. Because the video is stable with the existing monitor routine, **prioritize replacing/isolating the historical ISR with a timing-compatible variant of this known-working routine**, while retaining the untouched CHIP-8 instruction engine and framebuffer at $0B00. Avoid further ad-hoc modifications to hardware or game files. In particular, monitor `TEST PIXIE` ISR directly uses a monitor-defined pointer register, and **cannot be dropped in wholesale** without adapting that register usage to the CHIP-8 runtime. A standalone RAM experiment should install a purpose-built display handler and preserve the CHIP-8 1802 register contract.
+
+**Next bench acceptance:** existing corrected Four-Squares image + one controlled ISR-only alteration. Four squares must become stable on TV. Then test Maze; do not integrate interpreter into ROM before passing.
