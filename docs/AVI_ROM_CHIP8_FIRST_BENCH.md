@@ -73,3 +73,22 @@ Existing monitor commands **do not require new ROM**. After hardware RESET, with
 4. Do not assume a CHIP-8 FX0A hang versus other issue until these tests. Breakout begins with a key wait after drawing bricks/paddle so this is a high-value source-level hypothesis.
 
 Retain the already successfully hardware-tested CHIP8 ROM image and cassette/serial features. Next changes should be small, reversible, and based on sampled I/O data.
+
+
+## 2026-10-19: Breakout photo and Wipe Off video evidence
+
+Owner supplied an actual **Breakout still photo** (`image(20261019-143342).png`) and a **13-second Wipe Off bench video** (`IMG_9996.MOV`) showing the Panasonic CRT on the real Netronics ELF II:
+
+- Breakout: screen contains roughly six evenly-spaced thin horizontal wall rows and a distinct shorter paddle-like band near bottom. These are **plausible program-drawn blocks/paddle**, confirming that the game reaches graphical setup; neither keypress nor INPUT affects apparent game state, per owner's previous report.
+- Wipe Off video: near-empty CRT at beginning; small isolated pixels appear toward bottom within several seconds and accumulate into irregular rows of non-structured marks by ~10–11 s. This **is not a demonstrably normal complete Wipe Off playfield**, and could be framebuffer/data-area overlap as owner has previously observed; cannot conclude the exact source from video alone. There is visible temporal change in the framebuffer even before confirmed key input.
+- Both exhibit partial graphics, not necessarily fully initialized/compatible game logic. The original Netronics period OS and ROM FOUR/MAZE are functioning; **keypad/EF4 path remains unproven**, as do sophisticated CHIP-8 timer/stack semantics.
+
+Before changing 1979 period interpreter, bench-test from ROM monitor via **COM2** after hardware RESET:
+```
+SHOW EF
+```
+Compare EF4 with physical INPUT released versus held (repeat while held), then:
+```
+IN 4
+```
+Compare Port 4 full bytes at idle and while holding keypad 5/A/F. Record both port low nibble and EF4 sense. Key question: does the original Netronics front-panel physical keypad protocol currently reach input port4 and EF4, given J15 COM1 EF4 serial receive jumper? Changing console to COM2 doesn't by itself disconnect the COM1 RX electrical path. Do not modify ROM/jumpers until these reads are known.
