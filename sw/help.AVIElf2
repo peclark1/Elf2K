@@ -7,7 +7,7 @@ SERIAL CONSOLE
     COM1  or  1            -- Q/EF4 COM1, re-autobaud on return
     COM2  or  2            -- CDP1854 COM2 at 9600 baud
     COM2 9600 / 2 9600    -- explicit supported rate
-    COM2 19200 / 38400    -- hardware-clock test modes (8N1)
+    COM2 19200 / 38400    -- verified with correct x16 clocks (8N1)
     UART                   -- alias for COM2
 
 PROGRAM CONTROL
