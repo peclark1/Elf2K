@@ -156,7 +156,7 @@ def port_boots(path: Path) -> None:
 #endif""")
     s = substitute_exact(s, "TTYINI:\n", """TTYINI:
 #ifdef AVIELF2
-        LBR     TTYAUT      ; Netronics Q/EF4 autobaud
+        LBR     AVICOM2BOOTINIT ; CDP1854 38400 8N1; no COM1 EF4 dependency
 #endif
 """)
     anchor = "\tSTR\tDP\t\t; ...\n\n;   And lastly, if there is a NVR/CMOS"
