@@ -157,3 +157,41 @@ With Emma 02 stopped, replace the existing ROM file in the active
 the ZIP, then fully restart the emulator. Confirm boot checksum F586;
 `HELP` should now end cleanly with the `HEL[p]` line. Next run
 `CHIP8 LIST`, then `CHIP8 01`, recording both VT100 and PIXIE output.
+
+
+## Emma 02 CHIP-8 keypad investigation (2026-10-20)
+
+On owner's experimental Emma 02 Netronics ELF II setup, the corrected
+GAME27 ROM boots and a ROM-resident **Rocket (CHIP8 05)** draws plausible
+initial PIXIE graphics, but **on-screen and physical-keyboard inputs do
+not appear to affect play**. This is *not* a verified complete game test.
+
+Reviewing the Emma 02 `src/xmlemu.cpp` implementation and original
+Netronics interpreter reveals a likely polarity mismatch:
+
+- The temporary GUI XML inherited `<frontpanel><ef type="in">4</ef>`.
+  In Emma 02, `onInButtonPress()` sets `inbuttonEfState_=0`, and
+  `ef(4)` returns that 0 while pressed; release produces 1.
+- The Netronics interpreter uses `BN4` at RAM `$0CD1` to bypass
+  the keyboard scan when EF4 is low. Another input routine at `$0D9A`
+  waits with `BN4 $0D9A` for EF4 to become **high**, then at
+  `$0D9C` waits with `B4 $0D9C` for it to become **low**.
+  Thus the interpreter requires an *active-high* INPUT transition.
+- Emma's XML `<efbuttons>` offers a config-only experiment:
+  `<efbuttons><pressed>1</pressed><ef4>90</ef4></efbuttons>`
+  binds a **Z** key press/release to high/low EF4. This overrides the
+  active-low GUI IN mapping; the on-screen IN then **does not** drive EF4.
+  Choose Z instead of Space since Emma's default ELF keyboard map
+  already assigns Space to hexadecimal key 9.
+- Separately, the upstream archive's Rocket instructions claim
+  `B=start, 4/6=left/right`, but the actual 130-byte binary at CHIP-8
+  `$0234-$0237` contains `600F E0A1`, a test of hexadecimal
+  **key F**; no other CHIP-8 keypad-test opcode is present in its
+  reachable code. Do not assume archive notes match this binary.
+
+**Next test:** keep the ROM unchanged; boot a separate Emma 02 profile
+with active-high EF4 on Z, select `CHIP8 05`, click F (latch it), then
+press/release Z while focused on the emulated front panel. If it still
+does not respond, reset to monitor and check `IN 4` after selecting
+0 then F (expected 0F); use `SH EF` or debugger to check EF4 at
+rest 0 and asserted 1. This profile remains **untested by owner**.
