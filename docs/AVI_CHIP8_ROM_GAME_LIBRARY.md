@@ -254,3 +254,35 @@ Observed keyboard instruction for this exact binary:
 Do not infer whether winning/scoring or every edge case is verified;
 owner's report establishes visibly working graphics, moving targets,
 and responsive depth-charge action.
+
+
+### Lunar Lander title screen in Emma 02
+
+Owner's Emma 02 screenshot from resident **CHIP8 04**, the Udo Pernisz
+(1979) **Lunar Lander** program, displays the authentic title/credits
+and large pixel-font instructions for `KEY 2 THRUST` and
+`KEY 4-6 STABILISE`. This establishes emulator PIXIE image rendering,
+**not yet fully working flight/landing/keyboard play**.
+
+The contemporary archived instructions in Emma 02 are at
+`data/Chip-8/Chip-8 Games/Lunar Lander [Udo Pernisz, 1979].txt`
+(note: the `.ch8` and `.hex` filenames use parentheses, but the
+instruction file uses square brackets). The original describes:
+
+- `2`: rocket thrust, consuming 1 lb fuel per 1 ft thrust.
+- `4`: left stabilization, 1 ft left per 1 lb fuel.
+- `6`: right stabilization.
+- Left/right stabilizers respond only after a completed descent cycle
+  **or** after thrust via key 2—not continuously as in an arcade game.
+- Game choices at startup: 1 (250 ft/150 lb fuel/5 ft per second
+  limit, easy), 2 (250 ft/200 lb/3 ft per second, hard),
+  3 (32 ft/100 lb/3 ft per second, landing practice).
+- Fall rate and fuel indicators on right; descent and crater on left.
+  VIP original specifies **at least 3K RAM total**; the AVI setup
+  has a larger RAM address range and the $0200-$09FF game resides
+  alongside the interpreter/OS.
+
+Next owner test: choose a game-start option (perhaps 3 for practice)
+using hex key and original front-panel INPUT, then verify actual
+descent and at least one thrust or stabilization event; don't mark
+full gameplay verified until owner reports it.
