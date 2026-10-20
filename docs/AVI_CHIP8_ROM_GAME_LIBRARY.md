@@ -307,3 +307,56 @@ hex `2` controls thrust, `4` left and `6` right, with stabilizers
 taking effect only after a descent cycle or an applied thrust.
 Testing `2`+INPUT to reduce RATE and observing FEET/FUEL dynamics
 is the logical next on-emulator interaction test.
+
+
+### Emma 02 one-key CHIP-8 control experiment
+
+For travel/emulator play, the owner's request is for **one computer key**
+to perform both the Netronics front-panel hexadecimal key and momentary
+INPUT/EF4 strobe. This can be attempted without modifying the ROM and
+without an emulator binary patch: Emma 02's XML `efbuttons` parser
+(`src/xmlparser.cpp::parseXml_EfButtons`) supports multiple
+`<keydef key="ASCII">4</keydef>` entries that each assert an EF flag.
+`src/xmlemu.cpp::keyDownExtended` also delivers normal hex key handling
+to `keyDownPressed`. Use **`<pressed>0</pressed>`** to preserve the
+working original active-low IN polarity (not the failed HIGH test).
+
+Place this **additional profile-only section** after
+`</frontpanel>` in a *copy* of the proven GAME27 Emma 02 XML.
+The full experimental profile is available as a separate downloadable
+ZIP in the current ChatGPT session, named
+`AVIElfII_GAME27_OneKey_Emma02_Profile.zip`; no ROM bytes change.
+
+```xml
+<efbuttons>
+  <pressed>0</pressed>
+  <keydef key="48">4</keydef>  <!-- 0 -->
+  <keydef key="49">4</keydef>  <!-- 1 -->
+  <keydef key="50">4</keydef>  <!-- 2 (thrust) -->
+  <keydef key="51">4</keydef>  <!-- 3 (lander practice) -->
+  <keydef key="52">4</keydef>  <!-- 4 (left) -->
+  <keydef key="53">4</keydef>  <!-- 5 (depth charge) -->
+  <keydef key="54">4</keydef>  <!-- 6 (right) -->
+  <keydef key="55">4</keydef>  <!-- 7 -->
+  <keydef key="56">4</keydef>  <!-- 8 -->
+  <keydef key="57">4</keydef>  <!-- 9 -->
+  <keydef key="65">4</keydef>  <!-- A -->
+  <keydef key="66">4</keydef>  <!-- B -->
+  <keydef key="67">4</keydef>  <!-- C -->
+  <keydef key="68">4</keydef>  <!-- D -->
+  <keydef key="69">4</keydef>  <!-- E -->
+  <keydef key="70">4</keydef>  <!-- F (Rocket launch) -->
+</efbuttons>
+```
+
+Because `efbuttons` overrides the front-panel EF4 read, the
+GUI **IN** button is intentionally nonfunctional in this experimental
+profile. Use keyboard keys only and keep the normal profile for manual
+key+IN testing. The same ROM/VT100/PIXIE config and COM2 clock are used.
+
+**Test status: UNTESTED in Emma 02 on the owner's Mac.**
+Try `CHIP8 05` and the `F` key (Rocket) or `CHIP8 06` and
+`5` (Submarine) after focusing the emulator *front panel*.
+Then try `CHIP8 04`, `3` for practice, `2` for thrust and
+`4`/`6` to stabilize. If the game does not respond,
+revert to the proven original XML (no ROM reflashing).
