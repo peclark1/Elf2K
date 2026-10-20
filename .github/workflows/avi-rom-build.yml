@@ -27,22 +27,22 @@ jobs:
           python3 sw/build/verify-avi.py .build/avi-pass2/work/AVIElf2.hex
       - name: Prepare labelled One ROM diagnostic binary and Intel HEX
         run: python3 sw/build/prepare-one-rom.py .build/avi-pass1/work/AVIElf2.hex .build/avi-pass1/work
-      - name: Package checksum-identified FXFIX programming files
+      - name: Package checksum-identified GAME27 programming files
         run: |
           cd .build/avi-pass1/work
-          test "$(wc -c < AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.bin)" -eq 32768
-          sha256sum AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.bin \
-                    AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.hex > SHA256SUMS-FXFIX.txt
-          sha256sum --check SHA256SUMS-FXFIX.txt
-      - name: Upload FXFIX OneROM programming ZIP
+          test "$(wc -c < AVIElf2-COM2-38400-CHIP8-GAME27-OneROM.bin)" -eq 32768
+          sha256sum AVIElf2-COM2-38400-CHIP8-GAME27-OneROM.bin \
+                    AVIElf2-COM2-38400-CHIP8-GAME27-OneROM.hex > SHA256SUMS-GAME27.txt
+          sha256sum --check SHA256SUMS-GAME27.txt
+      - name: Upload GAME27 OneROM programming ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM-PROGRAMMING
+          name: AVIElf2-COM2-38400-CHIP8-GAME27-OneROM-PROGRAMMING
           path: |
-            .build/avi-pass1/work/AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.bin
-            .build/avi-pass1/work/AVIElf2-COM2-38400-CHIP8-FXFIX-OneROM.hex
+            .build/avi-pass1/work/AVIElf2-COM2-38400-CHIP8-GAME27-OneROM.bin
+            .build/avi-pass1/work/AVIElf2-COM2-38400-CHIP8-GAME27-OneROM.hex
             .build/avi-pass1/work/README-Netronics-OneROM-EXPERIMENTAL.txt
-            .build/avi-pass1/work/SHA256SUMS-FXFIX.txt
+            .build/avi-pass1/work/SHA256SUMS-GAME27.txt
           if-no-files-found: error
       - name: Upload development artifacts
         if: always()
@@ -55,4 +55,5 @@ jobs:
             .build/avi-pass1/work/config.inc
             .build/avi-pass1/work/*.bin
             .build/avi-pass1/work/README-Netronics-OneROM-EXPERIMENTAL.txt
+            .build/avi-pass1/work/chip8-rom-layout.json
           if-no-files-found: ignore
