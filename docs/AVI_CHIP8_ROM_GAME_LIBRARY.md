@@ -216,3 +216,22 @@ known-good starting point. The archived Rocket description's `B=start` is
 at odds with the embedded game image actually responding to `F+INPUT`.
 Keep ROM unchanged; concentrate next on confirming steering keys and
 convenient keyboard mappings using the working profile.
+
+
+### Rocket gameplay control confirmed in Emma 02
+
+Owner confirms the historically archived **Rocket** game (resident GAME27 number
+**05**) is a **timed rocket-launch/interception game**, not a steering game.
+An aircraft crosses the PIXIE screen; press hexadecimal **F**, then the
+physical/virtual **INPUT** button (EF4, working original Emma 02 profile)
+to launch the rocket at the aircraft. Hexadecimal **4** and **6** have no
+observed steering effect. This agrees with the archived game's reachable
+CHIP-8 code, which tests key F via `600F E0A1` at $0234. The older
+archived textual description `B=start, 4/6=left/right` evidently does not
+match the original binary loaded in GAME27 and should not be repeated as
+instructions for this tested copy.
+
+PIXIE graphics and F+INPUT launch observed by owner in Emma 02. Do not
+assert complete win/loss scoring or full game correctness until reported.
+The active-high EF4 alternate XML failed; use the original working emulator
+profile. No ROM changes needed.
