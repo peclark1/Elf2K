@@ -83,13 +83,17 @@ HEXFILES = $(strip							\
 	     $(if $(SEDIT), sedit.hex) $(if $(FORTH), forth.hex)	\
 	     $(if $(EDTASM), edtasm.hex) $(if $(BASIC), rcbasic.hex)	\
 	     $(if $(VISUAL), visual02.hex) $(if $(XMODEM), xmodem.hex) $(if $(GIANT), giantboard.hex)	\
-	     $(if $(HELP), help.hex)					\
+	     $(if $(CHIP8ROMGAMES), chip8-games.hex) $(if $(HELP), help.hex)					\
 	   )
 LISTFILES = $(HEXFILES:.hex=.lst)
 
 # The default target builds everything...
 all:	$(PLATFORM)$(ALTERNATE).hex
 
+
+chip8-games.hex: chip8-games.asm
+	@$(ECHO) -e "\nBuilding AVI CHIP-8 game library ..."
+	$(TASM) $(TASMOPTS) $< $@
 
 boots.hex:	boots.asm config.inc hardware.inc boots.inc bios.inc
 	@$(ECHO) -e "\nBuilding Elf 2000 Monitor ..."
