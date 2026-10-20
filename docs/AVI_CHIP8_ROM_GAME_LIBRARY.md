@@ -120,3 +120,40 @@ previously experimental startup ROM self-check bypass approach.
    the known-good FXFIX OneROM rather than changing jumpers under power.
 
 No merge until the real hardware reports are recorded.
+
+## Emma 02 live test and HELP overlap fix (2026-10-20)
+
+Owner confirmed that the **unchanged GAME27 binary booted in Emma 02**
+and displayed Pete's ELF II Monitor V120 (initial checksum `95D5`) with
+functional CDP1854 VT100 output. Running `HELP` revealed a genuine
+ROM overlap: the original 2466-byte HELP hex starting at $9800 overflowed
+its 2304-byte reservation by 162 bytes, into the first ROM game at $A100.
+ROMMERGE's overlapping game image hid the HELP terminator. The monitor
+printed a couple of stray game opcode bytes as characters, then found
+the game's $00 and returned to the prompt.
+
+The corrected HELP text is 2138 bytes including the NUL and terminates
+at **$A059**, leaving **166 bytes** of $FF padding before $A100.
+`verify-avi.py` now reads the *separately assembled* `help.hex`,
+rejects out-of-window bytes, checks its NUL terminator and verifies that
+the final ROM contains the complete HELP text and untouched padding.
+
+GitHub Actions clean two-pass ROM build and verifier **passed** at
+[run 39351228206](https://github.com/peclark1/Elf2K/actions/runs/39351228206).
+Corrected GAME27 OneROM image: **SHA256
+`452761030c4cf316b9067696d149bed7f6e8f209ca036f3add431b9c8087d715`**,
+boot checksum **`F586`**. Bytewise comparison to the prior 32-KiB
+`95D5` GAME27 image: all changes are strictly limited to HELP
+$9800-$A0FF and the four STG checksum/correction bytes
+$FFFC-$FFFF. In particular all 27 game ROM bytes and the
+Netronics interpreter/OS, monitor, Giant Monitor and BIOS are unchanged.
+New ROM has not yet been independently hardware-tested beyond the
+owner's successful older GAME27 boot.
+
+[Revised OneROM programmer ZIP](https://github.com/peclark1/Elf2K/actions/runs/39351228206/artifacts/12232862564).
+
+With Emma 02 stopped, replace the existing ROM file in the active
+`data/NetronicsElfII/` folder with the new, identically named BIN from
+the ZIP, then fully restart the emulator. Confirm boot checksum F586;
+`HELP` should now end cleanly with the `HEL[p]` line. Next run
+`CHIP8 LIST`, then `CHIP8 01`, recording both VT100 and PIXIE output.
