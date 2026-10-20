@@ -30,6 +30,7 @@ a ZIP containing:
 - **catalog.csv** — complete, sortable inventory with screening reasons.
 - **catalog.json** — inventory including source SHA256 and opcode findings.
 - **loadable-hex/** — up to 30 historical candidates as monitor-ready Intel HEX.
+- **instructions/** — exact archived game instructions for selected titles when an upstream TXT exists; not silently rewritten for Netronics controls.
 
 The job downloads only the games subdirectory via pinned sparse git checkout,
 audits it, checks Intel HEX round-trips, and publishes the package. It
