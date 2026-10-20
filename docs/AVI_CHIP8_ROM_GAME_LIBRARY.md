@@ -235,3 +235,22 @@ PIXIE graphics and F+INPUT launch observed by owner in Emma 02. Do not
 assert complete win/loss scoring or full game correctness until reported.
 The active-high EF4 alternate XML failed; use the original working emulator
 profile. No ROM changes needed.
+
+
+### Submarine gameplay confirmed in Emma 02
+
+Owner tested built-in **CHIP8 06: Submarine (Carmelo Cortez, 1978)**
+in Emma 02 using the original working Netronics ELF II front-panel
+configuration with the GAME27 OneROM image (not the failed EF4-HIGH
+override). **The game works well:** submarines move along the bottom of
+the CDP1861 PIXIE display and selecting hexadecimal **5** followed
+by pressing **INPUT** drops a depth charge at them. This is a
+successful emulator gameplay and control test, separate from physical
+AVI ELF II hardware verification.
+
+Observed keyboard instruction for this exact binary:
+**5, then INPUT → drop depth charge**.
+
+Do not infer whether winning/scoring or every edge case is verified;
+owner's report establishes visibly working graphics, moving targets,
+and responsive depth-charge action.
