@@ -1,6 +1,6 @@
 # AVI ELF II / Hyperboard — Netronics-compatible development ROM.
 # Comments beginning with # ignored by romtext.
-AVI ELF II / CHIP-8 COM2-FIRST 38400 ROM (TEST BUILD)
+AVI ELF II / CHIP-8 27-GAME COM2 38400 (TEST ROM)
 Default: COM2 CDP1854 38400 8N1 (614400 Hz x16 clock).
 
 SERIAL CONSOLE
@@ -20,7 +20,10 @@ PROGRAM CONTROL
 CHIP-8 -- 1979 NETRONICS INTERPRETER (64x32 PIXIE)
     CHIP8 FOUR             -- built-in four-square video demo
     CHIP8 MAZE             -- built-in Maze game
+    CHIP8 LIST             -- list 27 ROM-resident VIP games
+    CHIP8 01 thru 1B       -- select a ROM game (hex ID) and play
     CHIP8                  -- run a CHIP-8 program loaded at 0200
+    Selected ROM game copied to 0200, prior game RAM cleared.
     Loads original interpreter/OS from ROM into low RAM; keeps
     0200-09FF game RAM; clears 0A00-0BFF; enables interrupts.
     Reset to exit.  No terminal while PIXIE DMA is active.
