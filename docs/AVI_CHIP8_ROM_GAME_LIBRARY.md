@@ -195,3 +195,24 @@ press/release Z while focused on the emulated front panel. If it still
 does not respond, reset to monitor and check `IN 4` after selecting
 0 then F (expected 0F); use `SH EF` or debugger to check EF4 at
 rest 0 and asserted 1. This profile remains **untested by owner**.
+
+
+## Corrected Emma 02 Rocket keyboard finding — owner test
+
+**Bench correction to the earlier EF4-polarity hypothesis:** the owner tested both
+Emma 02 profiles and confirmed the **original active-low front-panel IN mapping
+works**. In the original Netronics ELF II / AVI GAME27 Emma 02 configuration,
+pressing hexadecimal **F and then physical/virtual INPUT** causes Rocket to
+respond. The experimental **EF4-HIGH** override does **not** work and should be
+**discarded**. Do not migrate this active-high override into the normal
+configuration or suggest it as a fix. The earlier interpretation of an
+isolated interpreter `BN4` branch was insufficient to determine the required
+input-edge protocol for the complete routine.
+
+The game itself is running in Emma 02 with PIXIE graphics and functioning
+original front-panel input; further controls and complete gameplay are not
+yet fully verified. Emma's original virtual hex keypad plus INPUT is the
+known-good starting point. The archived Rocket description's `B=start` is
+at odds with the embedded game image actually responding to `F+INPUT`.
+Keep ROM unchanged; concentrate next on confirming steering keys and
+convenient keyboard mappings using the working profile.
