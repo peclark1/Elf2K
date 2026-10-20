@@ -37,7 +37,7 @@ does not rebuild or change the user's ROM.
 
 Run locally with Python 3.10+ and an existing Emma 02 checkout:
 
-    python3 -m unittest discover -s sw/build -p 'test-chip8-library.py' -v
+    python3 sw/build/test-chip8-library.py -v
     python3 sw/build/chip8-library.py \
       --source "/path/to/emma_02/data/Chip-8/Chip-8 Games" \
       --revision 9bd1cdb1fd020081d6536a94d19351c94578acd0 \
