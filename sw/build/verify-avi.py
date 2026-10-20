@@ -57,6 +57,52 @@ def image_from_hex(path: Path) -> bytes:
         raise ValueError(f"Incomplete ROM: EOF={eof}, coverage={len(visited)}/{SIZE}")
     return bytes(data)
 
+def validate_help_rom(rom: bytes, rom_path: Path) -> None:
+    """Reject HELP text spilling into the first $A100 CHIP-8 game bank.
+
+    Check the independently assembled help.hex *before* relying on
+    ROMMERGE output, because overlapping HEX records can silently clobber
+    a truncated HELP tail/terminator when the game bank is merged.
+    """
+    records = (rom_path.parent / "help.hex").read_text(encoding="ascii").splitlines()
+    addresses = {}
+    eof = False
+    for row in records:
+        if not row.startswith(":") or eof:
+            raise ValueError("Malformed HELP HEX record/EOF")
+        raw = bytes.fromhex(row[1:])
+        if len(raw) != raw[0] + 5 or sum(raw) & 0xFF:
+            raise ValueError("Invalid HELP HEX checksum or record length")
+        addr = int.from_bytes(raw[1:3], "big")
+        if raw[3] == 1:
+            if raw[0] != 0 or addr != 0:
+                raise ValueError("Bad HELP HEX EOF")
+            eof = True
+        elif raw[3] == 0:
+            for index, value in enumerate(raw[4:-1]):
+                target = addr + index
+                if not 0x9800 <= target < 0xA100:
+                    raise ValueError(f"HELP data spills outside $9800-$A0FF at ${target:04X}")
+                if target in addresses:
+                    raise ValueError("Duplicate HELP HEX data")
+                addresses[target] = value
+        else:
+            raise ValueError("Unsupported HELP HEX record type")
+    if not eof or not addresses or min(addresses) != 0x9800:
+        raise ValueError("Missing HELP HEX data or EOF")
+    encoded = bytes(addresses[address] for address in range(0x9800, max(addresses) + 1))
+    if encoded.count(b"\x00") != 1 or encoded[-1] != 0:
+        raise ValueError("HELP needs a unique terminating NUL before $A100")
+    if b"CHIP8 LIST" not in encoded or b"HEL[p]" not in encoded:
+        raise ValueError("Game-library HELP text incomplete")
+    if rom[0x1800:0x1800 + len(encoded)] != encoded:
+        raise ValueError("Final ROM differs from assembled HELP")
+    if rom[0x1800 + len(encoded):0x2100] != b"\xFF" * (0x900 - len(encoded)):
+        raise ValueError("Non-FF bytes between HELP terminator and first game")
+    print(f"PASS: HELP {len(encoded)} bytes including NUL, ends at "
+          f"${0x9800+len(encoded)-1:04X}; no overlap with $A100 game bank")
+
+
 def validate_chip8_rom_library(rom: bytes, rom_path: Path) -> None:
     """Independent byte-for-byte check of each game + directory and unused gaps."""
     source = Path(__file__).resolve().parent.parent / "chip8-netronics" / "games"
@@ -238,6 +284,7 @@ def validate(path: Path) -> None:
         raise ValueError(f"Checksum/correction mismatch: got {rom[-4:].hex()}, expected {(correction+expected).hex()}")
     if (sum(rom) & 0xFFFF) != int.from_bytes(expected, "big"):
         raise ValueError("Whole-ROM sum does not equal embedded checksum")
+    validate_help_rom(rom, path)
     validate_chip8_payload(rom)
     validate_chip8_rom_library(rom, path)
     print(f"PASS: {len(rom)} ROM bytes, STG checksum {expected.hex().upper()}")
