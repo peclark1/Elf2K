@@ -1,0 +1,61 @@
+name: Historical CHIP-8 library audit
+
+on:
+  push:
+    branches:
+      - feature/avi-chip8-game-library
+  pull_request:
+    paths:
+      - "sw/build/chip8-library.py"
+      - "sw/build/test-chip8-library.py"
+      - ".github/workflows/chip8-library.yml"
+      - "docs/AVI_CHIP8_GAME_LIBRARY.md"
+  workflow_dispatch:
+
+jobs:
+  catalog-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit test compatibility analyzer and Intel HEX encoder
+        run: python3 -m unittest discover -s sw/build -p 'test-chip8-library.py' -v
+      - name: Sparse fetch of pinned public Emma 02 games (no changes to ROM)
+        run: |
+          git clone -q --depth=1 --filter=blob:none --sparse \
+            https://github.com/etxmato/emma_02.git .build/emma02
+          git -C .build/emma02 fetch -q --depth=1 origin \
+            9bd1cdb1fd020081d6536a94d19351c94578acd0
+          git -C .build/emma02 checkout -q --detach FETCH_HEAD
+          git -C .build/emma02 sparse-checkout set "data/Chip-8/Chip-8 Games"
+          test "$(git -C .build/emma02 rev-parse HEAD)" = \
+            9bd1cdb1fd020081d6536a94d19351c94578acd0
+          test "$(find '.build/emma02/data/Chip-8/Chip-8 Games' -name '*.ch8' | wc -l)" -eq 172
+      - name: Audit corpus and produce safely addressed, checked HEX files
+        run: |
+          python3 sw/build/chip8-library.py \
+            --source ".build/emma02/data/Chip-8/Chip-8 Games" \
+            --output ".build/chip8-library" \
+            --revision 9bd1cdb1fd020081d6536a94d19351c94578acd0 \
+            --max-games 30
+      - name: Validate catalog totals and contents
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          catalog = json.loads(Path('.build/chip8-library/catalog.json').read_text())
+          assert catalog['total_games'] == 172
+          assert len(catalog['games']) == 172
+          assert catalog['selected'] > 0
+          statuses = {g['classification'] for g in catalog['games']}
+          assert statuses <= {'likely', 'review', 'incompatible'}
+          assert next(g for g in catalog['games'] if g['source_filename'] == 'Airplane.ch8')['classification'] == 'incompatible'
+          print("Catalog and excluded ETI-660 Airplane: verified")
+          PY
+      - name: Upload printable catalog and loadable game HEX package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AVI-ELF-II-CHIP8-HISTORICAL-GAMES
+          path: .build/chip8-library/
+          if-no-files-found: error
+          retention-days: 90
