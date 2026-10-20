@@ -47,6 +47,11 @@ jobs:
           assert catalog['total_games'] == 172
           assert len(catalog['games']) == 172
           assert catalog['selected'] > 0
+          # Historical instructions are preserved alongside selected games.
+          assert any('instructions_file' in x for x in catalog['games'])
+          for game in catalog['games']:
+            if 'instructions_file' in game:
+              assert (Path('.build/chip8-library') / game['instructions_file']).is_file()
           statuses = {g['classification'] for g in catalog['games']}
           assert statuses <= {'likely', 'review', 'incompatible'}
           assert next(g for g in catalog['games'] if g['source_filename'] == 'Airplane.ch8')['classification'] == 'incompatible'
