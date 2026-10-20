@@ -198,6 +198,16 @@ def main():
             raise AssertionError("unsafe address")
         (dest / filename).write_text(result, encoding="ascii")
         game["loadable_hex"] = "loadable-hex/" + filename
+        # Preserve available historical instructions in their own UTF-8 files.
+        # The game metadata contains the exact upstream source attribution.
+        original_instructions = (args.source / game["source_filename"]).with_suffix(".txt")
+        if original_instructions.exists():
+            instructions_dir = args.output / "instructions"
+            instructions_dir.mkdir(exist_ok=True)
+            txt_filename = f"{i:02d}-{name}.txt"
+            text = original_instructions.read_text(encoding="utf-8", errors="replace")
+            (instructions_dir / txt_filename).write_text(text, encoding="utf-8")
+            game["instructions_file"] = "instructions/" + txt_filename
     report = {
         "source": "etxmato/emma_02",
         "revision": args.revision,
@@ -237,12 +247,16 @@ def main():
         "For Breakout, hold 4+INPUT to move left, 6+INPUT to move right.",
         "",
         "No ROM firmware or historical interpreter code is modified.", "",
+        "Original instruction text is copied to instructions/ when provided",
+        "by the upstream archive. These are historical notes, not rewritten",
+        "controls for the Netronics keypad + INPUT arrangement.", "",
         "## Selected candidates", "",
-        "| Game | Size | File |", "|---|---:|---|",
+        "| Game | Size | Intel HEX | Original instructions |",
+        "|---|---:|---|---|",
     ]
     for game in selected:
         readme.append(f"| {game['title'].replace('|','/')} | {game['source_bytes']} | "
-                      + game["loadable_hex"] + " |")
+                      + game["loadable_hex"] + " | " + game.get("instructions_file", "not provided") + " |")
     (args.output / "README.md").write_text("\n".join(readme) + "\n")
     print(f"AUDIT: {len(games)} files {counts}; {len(selected)} packaged", flush=True)
     for game in selected[:25]:
