@@ -360,3 +360,37 @@ Try `CHIP8 05` and the `F` key (Rocket) or `CHIP8 06` and
 Then try `CHIP8 04`, `3` for practice, `2` for thrust and
 `4`/`6` to stabilize. If the game does not respond,
 revert to the proven original XML (no ROM reflashing).
+
+
+### CHIP8 19 / Space Intercept variant: controls from game bytes
+
+GAME27 game number **19 hexadecimal** is **Space Intercept
+[TCNJ S.572.2, 37]** (ROM display `SPACE INT 2`), **not** the distinct
+`Space Flight` game in Emma 02's full upstream collection. The
+TCNJ variant does not have a separately named TXT instruction file
+in the pinned Emma 02 corpus. The actual 256-byte HEX binary has
+the following CHIP-8 input decoding at $0230–$0240:
+
+```
+0230 6D04   LD VD,04
+0232 EDA1   SKNP VD        ; key 4
+0234 66FF   LD V6,FF       ; leftward shot displacement
+0236 6D05   LD VD,05
+0238 EDA1   SKNP VD        ; key 5
+023A 6600   LD V6,00       ; straight shot
+023C 6D06   LD VD,06
+023E EDA1   SKNP VD        ; key 6
+0240 6601   LD V6,01       ; rightward shot displacement
+```
+
+Recommended first test in the successful one-key Emma profile:
+`CHIP8 19` then press **4**, **5**, **6** individually while
+watching the shot direction / UFO target. The direction semantics are
+inferred from the values $FF (negative one), $00 and $01 applied
+later in the projectile movement, and are not yet owner-verified.
+
+The other, unrelated upstream `Space Flight.ch8` has a TXT
+description stating: **F=start; E=start level; 1/4=up/down;
+fly through the screen three times to win a level**.
+It is **not** among GAME27's built-in 27 games; do not mistake
+these directions for `CHIP8 19`.
