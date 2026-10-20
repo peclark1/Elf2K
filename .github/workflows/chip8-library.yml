@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unit test compatibility analyzer and Intel HEX encoder
-        run: python3 -m unittest discover -s sw/build -p 'test-chip8-library.py' -v
+        run: python3 sw/build/test-chip8-library.py -v
       - name: Sparse fetch of pinned public Emma 02 games (no changes to ROM)
         run: |
           git clone -q --depth=1 --filter=blob:none --sparse \
