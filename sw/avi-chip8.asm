@@ -11,6 +11,8 @@
 ;   CHIP8 FOUR  -- copy the proven four-square CHIP-8 test into $0200/$0300
 ;   CHIP8 MAZE  -- copy proven Maze game into $0200
 ;   CHIP8       -- run an already-loaded standard VIP 64x32 game at $0200
+;   CHIP8 LIST  -- show 27 ROM-resident original VIP game titles
+;   CHIP8 01..1B -- copy the selected ROM game to RAM $0200 and launch
 ;
 ; This driver overlays $0000-$01FF and $0C00-$0DFF with the original
 ; Netronics interpreter/OS and clears $0A00-$0BFF for display/workspace.
@@ -27,11 +29,15 @@ AVICHIP8:
         CALL(F_LTRIM)
         CALL(ISEOL)
         LBDF AVICH8START          ; empty command: run pre-loaded game
+        LDN P1
+        CALL(ISHEX)              ; a hex game number follows CHIP8?
+        LBDF AVICH8NUMBER
         RLDI(P2,AVICH8ARGS)
         LBR COMND
 AVICH8ARGS:
         CMD(4,"FOUR",AVICH8FOUR)
         CMD(4,"MAZE",AVICH8MAZE)
+        CMD(4,"LIST",AVICH8LIST)
         .DB 0
 
 AVICH8FOUR:
@@ -104,6 +110,90 @@ AVICH8COPY1:
         GLO P4
         LBNZ AVICH8COPY1
         RETURN
+
+
+; Game selection routines stay entirely in the former spare ROM D100-D1FF.
+; Catalog from a separately assembled source occupies F100-F2AF:
+; 27 records x 16 bytes = big-endian source, length, 12-byte ASCII name.
+        .ORG $D100
+AVICH8NUMBER:
+        CALL(SCANP1)             ; monitor interprets game ID as hexadecimal
+        CALL(ISEOL)
+        LBNF CMDERR
+        GHI P2
+        LBNZ CMDERR
+        GLO P2
+        LBZ CMDERR               ; reject 00
+        SMI $1C
+        LBDF CMDERR              ; reject 1C or above: valid 01..1B
+
+; Entry n lies at F100 + (n-1)*16. Iterate rather than multiply 16-bit.
+        RLDI(P3,$F0F0)
+AVICH8NUMLOOP:
+        GLO P3
+        ADI $10
+        PLO P3
+        GHI P3
+        ADCI $00
+        PHI P3
+        DEC P2
+        GLO P2
+        LBNZ AVICH8NUMLOOP
+; Load big-endian source pointer and length; all paths use existing copier.
+        LDA P3
+        PHI P2
+        LDA P3
+        PLO P2
+        LDA P3
+        PHI P4
+        LDN P3
+        PLO P4
+; Unlike serial HEX downloads, a ROM game selection clears prior
+; game bytes first, preventing stale sprite/data tails from earlier games.
+; Keep ROM source P2 and byte count P4 intact during the RAM erase.
+        RLDI(P3,$0200)
+        RLDI(T1,$0800)
+AVICH8ERASE:
+        LDI $00
+        STR P3
+        INC P3
+        DEC T1
+        GHI T1
+        LBNZ AVICH8ERASE
+        GLO T1
+        LBNZ AVICH8ERASE
+        RLDI(P3,$0200)
+        CALL(AVICH8COPY)
+        LBR AVICH8START
+
+AVICH8LIST:
+        CALL(ISEOL)
+        LBNF CMDERR
+        RLDI(P3,$F100)
+        RCLEAR(P4)
+        INC P4
+AVICH8LISTLOOP:
+        GLO P4
+        CALL(THEX2)              ; display ID as hexadecimal 01..1B
+        OUTCHR(' ')
+        RCOPY(P1,P3)
+        INC P1
+        INC P1
+        INC P1
+        INC P1                   ; offset 4 = zero-terminated name
+        CALL(F_MSG)
+        CALL(TCRLF)
+        GLO P3
+        ADI $10
+        PLO P3
+        GHI P3
+        ADCI $00
+        PHI P3
+        INC P4
+        GLO P4
+        SMI $1C
+        LBNF AVICH8LISTLOOP
+        LBR MAIN
 
 ; The original 1979 Netronics byte strings are maintained except for the
 ; five-byte RCA VIP FX dispatch sequence in CORE at $0105 (only\n; three actual byte differences from the unmodified historical listing).
