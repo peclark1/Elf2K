@@ -148,6 +148,20 @@ AVICH8NUMLOOP:
         PHI P4
         LDN P3
         PLO P4
+; Unlike serial HEX downloads, a ROM game selection clears prior
+; game bytes first, preventing stale sprite/data tails from earlier games.
+; Keep ROM source P2 and byte count P4 intact during the RAM erase.
+        RLDI(P3,$0200)
+        RLDI(T1,$0800)
+AVICH8ERASE:
+        LDI $00
+        STR P3
+        INC P3
+        DEC T1
+        GHI T1
+        LBNZ AVICH8ERASE
+        GLO T1
+        LBNZ AVICH8ERASE
         RLDI(P3,$0200)
         CALL(AVICH8COPY)
         LBR AVICH8START
