@@ -286,3 +286,24 @@ Next owner test: choose a game-start option (perhaps 3 for practice)
 using hex key and original front-panel INPUT, then verify actual
 descent and at least one thrust or stabilization event; don't mark
 full gameplay verified until owner reports it.
+
+
+### Lunar Lander practice-mode simulation displayed in Emma 02
+
+In a subsequent Emma 02 PIXIE screenshot, owner demonstrates that GAME27
+**CHIP8 04 (Udo Pernisz's Lunar Lander)** progressed *beyond* the title
+and instructions into the **crater landing simulation**. The graphic
+shows the landing site/terrain and flight instruments labeled
+`FUEL`, `FEET`, `RATE`; apparent numerical values are 099, 004,
+and 009 respectively. This is consistent with the 32-foot
+**option 3 landing-practice mode**, though the exact keypress
+sequence and completion outcome have not yet been independently
+reported. The status confirms execution/display of an actual game
+scene; **do not yet mark complete control, thrust, successful landing
+or scoring as hardware-verified**.
+
+Original period instructions: for option 3, land at <=3 feet/second;
+hex `2` controls thrust, `4` left and `6` right, with stabilizers
+taking effect only after a descent cycle or an applied thrust.
+Testing `2`+INPUT to reduce RATE and observing FEET/FUEL dynamics
+is the logical next on-emulator interaction test.
