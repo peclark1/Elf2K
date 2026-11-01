@@ -1,0 +1,396 @@
+# AVI ELF II — 27 built-in CHIP-8 games (GAME27 ROM experiment)
+
+**Status:** software experiment on feature/avi-chip8-rom-library, draft PR #8.
+Not yet tested on the physical AVI ELF II. Keep the existing working
+COM2-first/Fxfix OneROM unchanged as a rollback.
+
+## What changed
+
+The original, hardware-tested 1979 Netronics CHIP-8 interpreter, its three-byte
+FX dispatcher correction, original Giant Monitor, UART init, cassette services,
+and the previously working ROM CHIP8 FOUR and CHIP8 MAZE demos remain intact.
+
+This variant adds **27 byte-exact original CHIP-8 game images** (10,958 bytes)
+in previously reserved 32-KiB ROM space. The menu and command handler use
+D100-D1FF, and the 27-entry directory is F100-F2AF (16 bytes/entry:
+ROM address, byte count, 12-byte NUL-padded ASCII title). The build repacks
+games deterministically into four ROM windows, never splitting an image:
+
+| ROM space | Uses |
+|---|---|
+| A100-A3FF | 768 of 768 game bytes |
+| B100-C1FF | 4,342 of 4,352 game bytes |
+| D100-D1FF | built-in CHIP8 menu, number parser, copier setup |
+| D200-D7FF | 1,536 of 1,536 game bytes |
+| D800-DCFF | **original Netronics interpreter / OS / tests, unchanged** |
+| DD00-EFFF | 4,312 of 4,864 game bytes |
+| F000-F0FF | **original Giant Monitor, unchanged** |
+| F100-F2AF | ROM library directory, 432 bytes |
+| F300-FFFF | **BIOS, unchanged apart from checksum tail** |
+
+Existing monitor HELP at 9800 now mentions game commands. A fresh
+ROM checksum and programming-image checksum-bypass patch are calculated.
+
+## Console usage
+
+COM2 serial remains **38,400 baud 8N1**, with the user's established
+614,400-Hz x16 TCLK/RCLK clock and **J15 removed** to free EF4.
+
+At Pete's Monitor:
+
+    CHIP8 LIST
+    CHIP8 01
+    CHIP8 02
+    CHIP8 03
+    CHIP8 04
+    CHIP8 1B
+
+Each number is **hexadecimal** (01..1B), not decimal. The command
+loads the chosen ROM game into RAM $0200, clearing $0200-$09FF first
+to prevent another game's stale sprites, then installs the period
+interpreter/OS and runs the normal interrupt-enabled PIXIE startup.
+
+- **01**: 1979 Breakout, hardware-proven on the previous FXFIX ROM.
+- **02**: Wipe Off, still needs a complete gameplay test.
+- **03**: Kaleidoscope, not yet confirmed on real hardware.
+- **04**: Lunar Lander, not yet confirmed on real hardware.
+- **1B**: Sum Fun, not yet confirmed on real hardware.
+
+Original interfaces remain:
+
+    CHIP8          (launch program loaded by serial Intel HEX at 0200)
+    CHIP8 FOUR     (original four-squares display diagnostic)
+    CHIP8 MAZE     (original Maze diagnostic)
+
+The original Netronics controls require a hex key and INPUT to
+register a press. For Breakout, **hold 4+INPUT to move left** or
+**6+INPUT to move right**. The INPUT button starts/launches a ball.
+With autoboot disabled, toggling RUN off/on restarts the RAM game on
+the tested FXFIX hardware. With autoboot enabled, RESET returns to the
+monitor so CHIP8 or CHIP8 01 can restart.
+
+## Source preservation and build integrity
+
+Game sources: Emma 02 public CHIP-8 collection, pinned at commit
+9bd1cdb1fd020081d6536a94d19351c94578acd0. Each title and original
+HEX source file SHA is stored with its exact truncated-to-CH8-size
+binary payload in two versioned JSON files. The library manifest from
+our previous hardware-oriented audit ranks these 27 games as *likely*
+compatible; that is a static prediction, not an emulator or real-hardware
+guarantee. Breakout alone has the proven hardware-playable result.
+
+Assembler procedure (after cloning the repository and installing the
+pinned tools):
+
+    bash sw/build/build-avi.sh
+    python3 sw/build/prepare-one-rom.py \
+      .build/avi-rom/work/AVIElf2.hex .build/avi-rom/work
+
+The script generates the separate chip8-games.asm source. TASM assembles
+chip8-games.hex independently; ROMMERGE fills the entire 32-KiB ROM;
+the checksum tool stamps it. verify-avi.py checks every game byte, menu
+pointer/label, all unused library bank padding, historical 1,098-byte
+interpreter payload invariants and final ROM checksum.
+
+Only the file named **AVIElf2-COM2-38400-CHIP8-GAME27-OneROM.bin** should
+be considered for this experimental game-library test; it is **not**
+the same as the previously successful FXFIX ROM. The paired Intel HEX
+is meant for the programmer; verify size 32,768 and checksum against
+SHA256SUMS-GAME27.txt before flashing. Both files include the same
+previously experimental startup ROM self-check bypass approach.
+
+## Bench acceptance checklist
+
+1. **Do not overwrite the only working OneROM.** Use a separate chip
+   and preserve the full verified FXFIX test image.
+2. With power off, fit the experimental GAME27 OneROM; retain existing
+   COM2 clock and J15 wiring. Boot to Pete's Monitor at 38400 8N1.
+3. Run CHIP8 LIST and verify 01..1B exactly 27 entries without
+   garbled serial or hangs; test invalid 00 and 1C commands.
+4. Type CHIP8 01. Test Breakout graphics, ball launch, 4+INPUT,
+   6+INPUT, and game-over behavior; RESET and select it again.
+5. Select CHIP8 02 and CHIP8 03. Record display/input differences,
+   including any original keypad+INPUT adjustments.
+6. Verify CHIP8 FOUR and CHIP8 MAZE still display properly.
+7. Send the original Breakout Intel HEX via serial at $0200, then
+   launch bare CHIP8. The preserved external-game path must still work.
+8. Recheck serial COM2 after RESET, RAM readback and normal monitor
+   commands before considering this candidate proven.
+9. If boot or monitor behaves unexpectedly, power down and restore
+   the known-good FXFIX OneROM rather than changing jumpers under power.
+
+No merge until the real hardware reports are recorded.
+
+## Emma 02 live test and HELP overlap fix (2026-10-20)
+
+Owner confirmed that the **unchanged GAME27 binary booted in Emma 02**
+and displayed Pete's ELF II Monitor V120 (initial checksum `95D5`) with
+functional CDP1854 VT100 output. Running `HELP` revealed a genuine
+ROM overlap: the original 2466-byte HELP hex starting at $9800 overflowed
+its 2304-byte reservation by 162 bytes, into the first ROM game at $A100.
+ROMMERGE's overlapping game image hid the HELP terminator. The monitor
+printed a couple of stray game opcode bytes as characters, then found
+the game's $00 and returned to the prompt.
+
+The corrected HELP text is 2138 bytes including the NUL and terminates
+at **$A059**, leaving **166 bytes** of $FF padding before $A100.
+`verify-avi.py` now reads the *separately assembled* `help.hex`,
+rejects out-of-window bytes, checks its NUL terminator and verifies that
+the final ROM contains the complete HELP text and untouched padding.
+
+GitHub Actions clean two-pass ROM build and verifier **passed** at
+[run 39351228206](https://github.com/peclark1/Elf2K/actions/runs/39351228206).
+Corrected GAME27 OneROM image: **SHA256
+`452761030c4cf316b9067696d149bed7f6e8f209ca036f3add431b9c8087d715`**,
+boot checksum **`F586`**. Bytewise comparison to the prior 32-KiB
+`95D5` GAME27 image: all changes are strictly limited to HELP
+$9800-$A0FF and the four STG checksum/correction bytes
+$FFFC-$FFFF. In particular all 27 game ROM bytes and the
+Netronics interpreter/OS, monitor, Giant Monitor and BIOS are unchanged.
+New ROM has not yet been independently hardware-tested beyond the
+owner's successful older GAME27 boot.
+
+[Revised OneROM programmer ZIP](https://github.com/peclark1/Elf2K/actions/runs/39351228206/artifacts/12232862564).
+
+With Emma 02 stopped, replace the existing ROM file in the active
+`data/NetronicsElfII/` folder with the new, identically named BIN from
+the ZIP, then fully restart the emulator. Confirm boot checksum F586;
+`HELP` should now end cleanly with the `HEL[p]` line. Next run
+`CHIP8 LIST`, then `CHIP8 01`, recording both VT100 and PIXIE output.
+
+
+## Emma 02 CHIP-8 keypad investigation (2026-10-20)
+
+On owner's experimental Emma 02 Netronics ELF II setup, the corrected
+GAME27 ROM boots and a ROM-resident **Rocket (CHIP8 05)** draws plausible
+initial PIXIE graphics, but **on-screen and physical-keyboard inputs do
+not appear to affect play**. This is *not* a verified complete game test.
+
+Reviewing the Emma 02 `src/xmlemu.cpp` implementation and original
+Netronics interpreter reveals a likely polarity mismatch:
+
+- The temporary GUI XML inherited `<frontpanel><ef type="in">4</ef>`.
+  In Emma 02, `onInButtonPress()` sets `inbuttonEfState_=0`, and
+  `ef(4)` returns that 0 while pressed; release produces 1.
+- The Netronics interpreter uses `BN4` at RAM `$0CD1` to bypass
+  the keyboard scan when EF4 is low. Another input routine at `$0D9A`
+  waits with `BN4 $0D9A` for EF4 to become **high**, then at
+  `$0D9C` waits with `B4 $0D9C` for it to become **low**.
+  Thus the interpreter requires an *active-high* INPUT transition.
+- Emma's XML `<efbuttons>` offers a config-only experiment:
+  `<efbuttons><pressed>1</pressed><ef4>90</ef4></efbuttons>`
+  binds a **Z** key press/release to high/low EF4. This overrides the
+  active-low GUI IN mapping; the on-screen IN then **does not** drive EF4.
+  Choose Z instead of Space since Emma's default ELF keyboard map
+  already assigns Space to hexadecimal key 9.
+- Separately, the upstream archive's Rocket instructions claim
+  `B=start, 4/6=left/right`, but the actual 130-byte binary at CHIP-8
+  `$0234-$0237` contains `600F E0A1`, a test of hexadecimal
+  **key F**; no other CHIP-8 keypad-test opcode is present in its
+  reachable code. Do not assume archive notes match this binary.
+
+**Next test:** keep the ROM unchanged; boot a separate Emma 02 profile
+with active-high EF4 on Z, select `CHIP8 05`, click F (latch it), then
+press/release Z while focused on the emulated front panel. If it still
+does not respond, reset to monitor and check `IN 4` after selecting
+0 then F (expected 0F); use `SH EF` or debugger to check EF4 at
+rest 0 and asserted 1. This profile remains **untested by owner**.
+
+
+## Corrected Emma 02 Rocket keyboard finding — owner test
+
+**Bench correction to the earlier EF4-polarity hypothesis:** the owner tested both
+Emma 02 profiles and confirmed the **original active-low front-panel IN mapping
+works**. In the original Netronics ELF II / AVI GAME27 Emma 02 configuration,
+pressing hexadecimal **F and then physical/virtual INPUT** causes Rocket to
+respond. The experimental **EF4-HIGH** override does **not** work and should be
+**discarded**. Do not migrate this active-high override into the normal
+configuration or suggest it as a fix. The earlier interpretation of an
+isolated interpreter `BN4` branch was insufficient to determine the required
+input-edge protocol for the complete routine.
+
+The game itself is running in Emma 02 with PIXIE graphics and functioning
+original front-panel input; further controls and complete gameplay are not
+yet fully verified. Emma's original virtual hex keypad plus INPUT is the
+known-good starting point. The archived Rocket description's `B=start` is
+at odds with the embedded game image actually responding to `F+INPUT`.
+Keep ROM unchanged; concentrate next on confirming steering keys and
+convenient keyboard mappings using the working profile.
+
+
+### Rocket gameplay control confirmed in Emma 02
+
+Owner confirms the historically archived **Rocket** game (resident GAME27 number
+**05**) is a **timed rocket-launch/interception game**, not a steering game.
+An aircraft crosses the PIXIE screen; press hexadecimal **F**, then the
+physical/virtual **INPUT** button (EF4, working original Emma 02 profile)
+to launch the rocket at the aircraft. Hexadecimal **4** and **6** have no
+observed steering effect. This agrees with the archived game's reachable
+CHIP-8 code, which tests key F via `600F E0A1` at $0234. The older
+archived textual description `B=start, 4/6=left/right` evidently does not
+match the original binary loaded in GAME27 and should not be repeated as
+instructions for this tested copy.
+
+PIXIE graphics and F+INPUT launch observed by owner in Emma 02. Do not
+assert complete win/loss scoring or full game correctness until reported.
+The active-high EF4 alternate XML failed; use the original working emulator
+profile. No ROM changes needed.
+
+
+### Submarine gameplay confirmed in Emma 02
+
+Owner tested built-in **CHIP8 06: Submarine (Carmelo Cortez, 1978)**
+in Emma 02 using the original working Netronics ELF II front-panel
+configuration with the GAME27 OneROM image (not the failed EF4-HIGH
+override). **The game works well:** submarines move along the bottom of
+the CDP1861 PIXIE display and selecting hexadecimal **5** followed
+by pressing **INPUT** drops a depth charge at them. This is a
+successful emulator gameplay and control test, separate from physical
+AVI ELF II hardware verification.
+
+Observed keyboard instruction for this exact binary:
+**5, then INPUT → drop depth charge**.
+
+Do not infer whether winning/scoring or every edge case is verified;
+owner's report establishes visibly working graphics, moving targets,
+and responsive depth-charge action.
+
+
+### Lunar Lander title screen in Emma 02
+
+Owner's Emma 02 screenshot from resident **CHIP8 04**, the Udo Pernisz
+(1979) **Lunar Lander** program, displays the authentic title/credits
+and large pixel-font instructions for `KEY 2 THRUST` and
+`KEY 4-6 STABILISE`. This establishes emulator PIXIE image rendering,
+**not yet fully working flight/landing/keyboard play**.
+
+The contemporary archived instructions in Emma 02 are at
+`data/Chip-8/Chip-8 Games/Lunar Lander [Udo Pernisz, 1979].txt`
+(note: the `.ch8` and `.hex` filenames use parentheses, but the
+instruction file uses square brackets). The original describes:
+
+- `2`: rocket thrust, consuming 1 lb fuel per 1 ft thrust.
+- `4`: left stabilization, 1 ft left per 1 lb fuel.
+- `6`: right stabilization.
+- Left/right stabilizers respond only after a completed descent cycle
+  **or** after thrust via key 2—not continuously as in an arcade game.
+- Game choices at startup: 1 (250 ft/150 lb fuel/5 ft per second
+  limit, easy), 2 (250 ft/200 lb/3 ft per second, hard),
+  3 (32 ft/100 lb/3 ft per second, landing practice).
+- Fall rate and fuel indicators on right; descent and crater on left.
+  VIP original specifies **at least 3K RAM total**; the AVI setup
+  has a larger RAM address range and the $0200-$09FF game resides
+  alongside the interpreter/OS.
+
+Next owner test: choose a game-start option (perhaps 3 for practice)
+using hex key and original front-panel INPUT, then verify actual
+descent and at least one thrust or stabilization event; don't mark
+full gameplay verified until owner reports it.
+
+
+### Lunar Lander practice-mode simulation displayed in Emma 02
+
+In a subsequent Emma 02 PIXIE screenshot, owner demonstrates that GAME27
+**CHIP8 04 (Udo Pernisz's Lunar Lander)** progressed *beyond* the title
+and instructions into the **crater landing simulation**. The graphic
+shows the landing site/terrain and flight instruments labeled
+`FUEL`, `FEET`, `RATE`; apparent numerical values are 099, 004,
+and 009 respectively. This is consistent with the 32-foot
+**option 3 landing-practice mode**, though the exact keypress
+sequence and completion outcome have not yet been independently
+reported. The status confirms execution/display of an actual game
+scene; **do not yet mark complete control, thrust, successful landing
+or scoring as hardware-verified**.
+
+Original period instructions: for option 3, land at <=3 feet/second;
+hex `2` controls thrust, `4` left and `6` right, with stabilizers
+taking effect only after a descent cycle or an applied thrust.
+Testing `2`+INPUT to reduce RATE and observing FEET/FUEL dynamics
+is the logical next on-emulator interaction test.
+
+
+### Emma 02 one-key CHIP-8 control experiment
+
+For travel/emulator play, the owner's request is for **one computer key**
+to perform both the Netronics front-panel hexadecimal key and momentary
+INPUT/EF4 strobe. This can be attempted without modifying the ROM and
+without an emulator binary patch: Emma 02's XML `efbuttons` parser
+(`src/xmlparser.cpp::parseXml_EfButtons`) supports multiple
+`<keydef key="ASCII">4</keydef>` entries that each assert an EF flag.
+`src/xmlemu.cpp::keyDownExtended` also delivers normal hex key handling
+to `keyDownPressed`. Use **`<pressed>0</pressed>`** to preserve the
+working original active-low IN polarity (not the failed HIGH test).
+
+Place this **additional profile-only section** after
+`</frontpanel>` in a *copy* of the proven GAME27 Emma 02 XML.
+The full experimental profile is available as a separate downloadable
+ZIP in the current ChatGPT session, named
+`AVIElfII_GAME27_OneKey_Emma02_Profile.zip`; no ROM bytes change.
+
+```xml
+<efbuttons>
+  <pressed>0</pressed>
+  <keydef key="48">4</keydef>  <!-- 0 -->
+  <keydef key="49">4</keydef>  <!-- 1 -->
+  <keydef key="50">4</keydef>  <!-- 2 (thrust) -->
+  <keydef key="51">4</keydef>  <!-- 3 (lander practice) -->
+  <keydef key="52">4</keydef>  <!-- 4 (left) -->
+  <keydef key="53">4</keydef>  <!-- 5 (depth charge) -->
+  <keydef key="54">4</keydef>  <!-- 6 (right) -->
+  <keydef key="55">4</keydef>  <!-- 7 -->
+  <keydef key="56">4</keydef>  <!-- 8 -->
+  <keydef key="57">4</keydef>  <!-- 9 -->
+  <keydef key="65">4</keydef>  <!-- A -->
+  <keydef key="66">4</keydef>  <!-- B -->
+  <keydef key="67">4</keydef>  <!-- C -->
+  <keydef key="68">4</keydef>  <!-- D -->
+  <keydef key="69">4</keydef>  <!-- E -->
+  <keydef key="70">4</keydef>  <!-- F (Rocket launch) -->
+</efbuttons>
+```
+
+Because `efbuttons` overrides the front-panel EF4 read, the
+GUI **IN** button is intentionally nonfunctional in this experimental
+profile. Use keyboard keys only and keep the normal profile for manual
+key+IN testing. The same ROM/VT100/PIXIE config and COM2 clock are used.
+
+**Test status: UNTESTED in Emma 02 on the owner's Mac.**
+Try `CHIP8 05` and the `F` key (Rocket) or `CHIP8 06` and
+`5` (Submarine) after focusing the emulator *front panel*.
+Then try `CHIP8 04`, `3` for practice, `2` for thrust and
+`4`/`6` to stabilize. If the game does not respond,
+revert to the proven original XML (no ROM reflashing).
+
+
+### CHIP8 19 / Space Intercept variant: controls from game bytes
+
+GAME27 game number **19 hexadecimal** is **Space Intercept
+[TCNJ S.572.2, 37]** (ROM display `SPACE INT 2`), **not** the distinct
+`Space Flight` game in Emma 02's full upstream collection. The
+TCNJ variant does not have a separately named TXT instruction file
+in the pinned Emma 02 corpus. The actual 256-byte HEX binary has
+the following CHIP-8 input decoding at $0230–$0240:
+
+```
+0230 6D04   LD VD,04
+0232 EDA1   SKNP VD        ; key 4
+0234 66FF   LD V6,FF       ; leftward shot displacement
+0236 6D05   LD VD,05
+0238 EDA1   SKNP VD        ; key 5
+023A 6600   LD V6,00       ; straight shot
+023C 6D06   LD VD,06
+023E EDA1   SKNP VD        ; key 6
+0240 6601   LD V6,01       ; rightward shot displacement
+```
+
+Recommended first test in the successful one-key Emma profile:
+`CHIP8 19` then press **4**, **5**, **6** individually while
+watching the shot direction / UFO target. The direction semantics are
+inferred from the values $FF (negative one), $00 and $01 applied
+later in the projectile movement, and are not yet owner-verified.
+
+The other, unrelated upstream `Space Flight.ch8` has a TXT
+description stating: **F=start; E=start level; 1/4=up/down;
+fly through the screen three times to win a level**.
+It is **not** among GAME27's built-in 27 games; do not mistake
+these directions for `CHIP8 19`.

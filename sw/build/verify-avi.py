@@ -2,17 +2,23 @@
 """Check complete AVI 27C256 Intel HEX, layout and STG ROM checksum."""
 from __future__ import annotations
 import hashlib
+import json
 from pathlib import Path
 import sys
 
 SIZE = 32768
 BASE = 0x8000
-RESERVED = ((0xA100, 0xA400, "SEDIT"), (0xB100, 0xC200, "Visual/02 deferred"), (0xDD00, 0xF000, "reserved above CHIP-8 archive"), (0xF100, 0xF300, "reserved after Giant Monitor"))
+# Library branch now uses formerly reserved ROM for exact, verified game blobs.
+RESERVED = ((0xF2B0, 0xF300, "spare after 27-entry ROM directory"),)
 ACTIVE = (
     (0x8000, 0x9800, "monitor"), (0x9800, 0xA100, "AVI help"),
     (0xA400, 0xB100, "EDTASM"),
     (0xC200, 0xD000, "AVI cassette monitor service"),
     (0xD000, 0xDD00, "1979 Netronics CHIP-8 launcher and archive"),
+    (0xA100, 0xA400, "library game data bank 1"),
+    (0xB100, 0xC200, "library game data bank 2"),
+    (0xDD00, 0xF000, "library game data bank 4"),
+    (0xF100, 0xF2B0, "game directory"),
     (0xF000, 0xF100, "original Giant Monitor"),
     (0xF300, 0x10000, "BIOS"),
 )
@@ -50,6 +56,105 @@ def image_from_hex(path: Path) -> bytes:
     if not eof or len(visited) != SIZE:
         raise ValueError(f"Incomplete ROM: EOF={eof}, coverage={len(visited)}/{SIZE}")
     return bytes(data)
+
+def validate_help_rom(rom: bytes, rom_path: Path) -> None:
+    """Reject HELP text spilling into the first $A100 CHIP-8 game bank.
+
+    Check the independently assembled help.hex *before* relying on
+    ROMMERGE output, because overlapping HEX records can silently clobber
+    a truncated HELP tail/terminator when the game bank is merged.
+    """
+    records = (rom_path.parent / "help.hex").read_text(encoding="ascii").splitlines()
+    addresses = {}
+    eof = False
+    for row in records:
+        if not row.startswith(":") or eof:
+            raise ValueError("Malformed HELP HEX record/EOF")
+        raw = bytes.fromhex(row[1:])
+        if len(raw) != raw[0] + 5 or sum(raw) & 0xFF:
+            raise ValueError("Invalid HELP HEX checksum or record length")
+        addr = int.from_bytes(raw[1:3], "big")
+        if raw[3] == 1:
+            if raw[0] != 0 or addr != 0:
+                raise ValueError("Bad HELP HEX EOF")
+            eof = True
+        elif raw[3] == 0:
+            for index, value in enumerate(raw[4:-1]):
+                target = addr + index
+                if not 0x9800 <= target < 0xA100:
+                    raise ValueError(f"HELP data spills outside $9800-$A0FF at ${target:04X}")
+                if target in addresses:
+                    raise ValueError("Duplicate HELP HEX data")
+                addresses[target] = value
+        else:
+            raise ValueError("Unsupported HELP HEX record type")
+    if not eof or not addresses or min(addresses) != 0x9800:
+        raise ValueError("Missing HELP HEX data or EOF")
+    encoded = bytes(addresses[address] for address in range(0x9800, max(addresses) + 1))
+    if encoded.count(b"\x00") != 1 or encoded[-1] != 0:
+        raise ValueError("HELP needs a unique terminating NUL before $A100")
+    if b"CHIP8 LIST" not in encoded or b"HEL[p]" not in encoded:
+        raise ValueError("Game-library HELP text incomplete")
+    if rom[0x1800:0x1800 + len(encoded)] != encoded:
+        raise ValueError("Final ROM differs from assembled HELP")
+    if rom[0x1800 + len(encoded):0x2100] != b"\xFF" * (0x900 - len(encoded)):
+        raise ValueError("Non-FF bytes between HELP terminator and first game")
+    print(f"PASS: HELP {len(encoded)} bytes including NUL, ends at "
+          f"${0x9800+len(encoded)-1:04X}; no overlap with $A100 game bank")
+
+
+def validate_chip8_rom_library(rom: bytes, rom_path: Path) -> None:
+    """Independent byte-for-byte check of each game + directory and unused gaps."""
+    source = Path(__file__).resolve().parent.parent / "chip8-netronics" / "games"
+    parts = ("rom-library-01.json", "rom-library-02.json")
+    games = []
+    for filename in parts:
+        games.extend(json.loads((source / filename).read_text())["games"])
+    layout_path = rom_path.parent / "chip8-rom-layout.json"
+    layout = json.loads(layout_path.read_text())
+    if len(games) != 27 or layout["count"] != 27 or len(layout["games"]) != 27:
+        raise ValueError("Wrong CHIP8 ROM game count")
+    if layout["total_game_bytes"] != 10958:
+        raise ValueError("Unexpected CHIP8 game total bytes")
+    directory = bytes.fromhex(layout["directory_hex"])
+    if len(directory) != 27 * 16 or layout["directory"] != 0xF100:
+        raise ValueError("Invalid CHIP8 game table length or address")
+    if rom[0xF100-BASE:0xF100-BASE+len(directory)] != directory:
+        raise ValueError("CHIP8 directory differs from exact layout")
+    occupied = set(range(0xF100, 0xF100 + len(directory)))
+    regions = ((0xA100, 0xA400), (0xB100, 0xC200),
+               (0xD200, 0xD800), (0xDD00, 0xF000))
+    total = 0
+    for source_game, g in zip(games, layout["games"]):
+        address, length = g["rom_address"], g["length"]
+        data = bytes.fromhex(source_game["bytes"])
+        if g["id"] != source_game["id"] or length != len(data):
+            raise ValueError("CHIP8 library game metadata mismatch")
+        if g["title"] != source_game["title"] or hashlib.sha256(data).hexdigest() != g["sha256"]:
+            raise ValueError("CHIP8 source authenticity mismatch")
+        if not any(start <= address and address + length <= stop for start, stop in regions):
+            raise ValueError(f"CHIP8 game outside allocated ROM bank: {g['title']}")
+        if occupied.intersection(range(address, address + length)):
+            raise ValueError(f"CHIP8 games overlapping: {g['title']}")
+        occupied.update(range(address, address + length))
+        if rom[address-BASE:address-BASE+length] != data:
+            raise ValueError(f"CHIP8 ROM data mismatch at {address:04X}: {g['title']}")
+        record = directory[(g["id"] - 1) * 16:g["id"] * 16]
+        if record[:4] != address.to_bytes(2, "big") + length.to_bytes(2, "big"):
+            raise ValueError("Directory pointer or length does not match game")
+        if record[4:] != g["menu"].encode("ascii").ljust(12, b"\x00"):
+            raise ValueError("Directory label does not match game")
+        total += length
+    for start, stop in regions:
+        for a in range(start, stop):
+            if a not in occupied and rom[a - BASE] != 0xFF:
+                raise ValueError(f"Unexpected non-FF bytes in unused library space at {a:04X}")
+    if b"LIST\x00" not in rom[0xD000-BASE:0xD100-BASE]:
+        raise ValueError("CHIP8 LIST command not in monitor directory")
+    if rom[0xD100-BASE:0xD200-BASE] == b"\xFF" * 0x100:
+        raise ValueError("CHIP8 game menu and loader routines absent")
+    print(f"PASS: CHIP8 ROM library, {len(games)} games / {total} bytes; F100 directory; all unused game-bank bytes FF")
+
 
 def validate_chip8_payload(rom: bytes) -> None:
     """Verify ROM-resident Netronics code against two REAL-HARDWARE-PROVEN
@@ -179,7 +284,9 @@ def validate(path: Path) -> None:
         raise ValueError(f"Checksum/correction mismatch: got {rom[-4:].hex()}, expected {(correction+expected).hex()}")
     if (sum(rom) & 0xFFFF) != int.from_bytes(expected, "big"):
         raise ValueError("Whole-ROM sum does not equal embedded checksum")
+    validate_help_rom(rom, path)
     validate_chip8_payload(rom)
+    validate_chip8_rom_library(rom, path)
     print(f"PASS: {len(rom)} ROM bytes, STG checksum {expected.hex().upper()}")
     print("SHA256 (binary ROM): " + hashlib.sha256(rom).hexdigest())
     for start, stop, name in ACTIVE:

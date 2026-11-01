@@ -126,13 +126,13 @@ def port_boots(path: Path) -> None:
     s = substitute_exact(s,
         "BR\tINT1RT\t\t; and return when the frame is finished",
         "LBR\tINT1RT\t; and return when the frame is finished")
-    # Netronics COM1 receives serial data on EF4, normally idle high.
-    # The stock PIXIE test loops for idle-low keypad EF4; in this variant,
-    # loop while COM1 idles high and quit on a PC serial start bit.
+    # COM2 is the default console; EF4 is no longer guaranteed to be high
+    # because the COM1 jumper may be removed. Keep PIXIE active regardless
+    # of EF4 for this controlled video diagnostic; use RESET to exit.
     s = substitute_exact(s, "BN4\tPIXIE1\t\t; or break when INPUT is pressed",
-                         "B4\tPIXIE1\t; exit when EF4 COM1 RX falls")
+                         "BR\tPIXIE1\t; COM2 video diagnostic: RESET to exit")
     s = substitute_exact(s, "[Toggle INPUT to end]",
-                         "[Send a character on COM1 to end]")
+                         "[Press RESET to end PIXIE test]")
     # Self-checks for ROM and RAM remain intact; bypass only absent
     # DS1287, 8250, PPI, speaker, PS/2 POST sequences.
     s = substitute_exact(s, "DPDONE:\n", """DPDONE:

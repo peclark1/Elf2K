@@ -1,13 +1,13 @@
 # AVI ELF II / Hyperboard — Netronics-compatible development ROM.
 # Comments beginning with # ignored by romtext.
-AVI ELF II / CHIP-8 COM2-FIRST 38400 ROM (TEST BUILD)
-Default: COM2 CDP1854 38400 8N1 (614400 Hz x16 clock).
+AVI ELF II / CHIP-8 27-GAME COM2 38400 (TEST ROM)
+Default COM2: 38400 8N1, UART clock 614400 Hz.
 
 SERIAL CONSOLE
-    COM1  or  1            -- Q/EF4 manual fallback only; needs J15
-    COM2  or  2            -- CDP1854 COM2 at 9600 baud
-    COM2 9600 / 2 9600    -- explicit supported rate
-    COM2 19200 / 38400    -- verified with correct x16 clocks (8N1)
+    COM1 / 1               -- Q/EF4 fallback (requires J15)
+    COM2 / 2               -- CDP1854 UART at 9600
+    COM2 9600              -- select 9600
+    COM2 19200 / 38400    -- requires correct x16 clock
     UART                   -- alias for COM2
 
 PROGRAM CONTROL
@@ -15,24 +15,27 @@ PROGRAM CONTROL
     RUN [addr]             -- execute with P=0
     CONT[inue]             -- resume from breakpoint
     ASM [NEW|OLD]          -- editor/assembler
-    RUN F000               -- ORIGINAL 256-BYTE GIANT MONITOR
+    RUN F000               -- original Giant Monitor
 
-CHIP-8 -- 1979 NETRONICS INTERPRETER (64x32 PIXIE)
-    CHIP8 FOUR             -- built-in four-square video demo
-    CHIP8 MAZE             -- built-in Maze game
-    CHIP8                  -- run a CHIP-8 program loaded at 0200
-    Loads original interpreter/OS from ROM into low RAM; keeps
-    0200-09FF game RAM; clears 0A00-0BFF; enables interrupts.
-    Reset to exit.  No terminal while PIXIE DMA is active.
-    ETI-660 64x48 programs are not generally compatible.
+CHIP-8: 1979 Netronics, 64x32 PIXIE
+    CHIP8 FOUR             -- four-square test
+    CHIP8 MAZE             -- Maze demo
+    CHIP8 LIST             -- 27 games in ROM
+    CHIP8 01..1B           -- launch game (hex ID)
+    CHIP8                  -- launch RAM game at 0200
+    ROM game copied to 0200; old game cleared.
+    Interpreter/OS copied to RAM; preserves
+    0200-09FF; initializes PIXIE and interrupts.
+    Reset to exit; serial pauses during PIXIE.
+    ETI-660 games (64x48) are incompatible.
 
 CASSETTE - Q output / EF2 input; Netronics tape format
-  CASSAVE start end   -- record inclusive RAM range
-  CASLOAD start end   -- restore inclusive RAM range
-  CASSAVE TBASIC      -- save Tiny BASIC + program automatically
-  CASLOAD TBASIC      -- restore Tiny BASIC + program automatically
-  Addresses are hexadecimal. PLAY/RECORD before pressing key.
-  CASLOAD overwrites RAM. Tape transfer cannot be aborted via COM1.
+  CASSAVE start end   -- save RAM inclusive
+  CASLOAD start end   -- load RAM inclusive
+  CASSAVE TBASIC      -- save Tiny BASIC + program
+  CASLOAD TBASIC      -- restore Tiny BASIC + program
+  Hex addresses. PLAY/RECORD tape before key.
+  CASLOAD overwrites RAM; COM1 cannot abort.
 
 MEMORY / I-O
     E[xamine] addr [end]   -- read memory
@@ -46,6 +49,6 @@ MEMORY / I-O
 DIAGNOSTICS
     SH[ow] EF              -- read EF1..EF4
     TE[st] RAM             -- RAM test
-    TE[st] PIXIE           -- original 1977 COSMAC/Enterprise bitmap
-                              Use COM1 serial key to exit (EF4 receiver)
+    TE[st] PIXIE           -- Enterprise video test
+                              COM1 serial key exits
     HEL[p]                 -- this text

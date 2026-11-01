@@ -25,6 +25,8 @@
 # External TCLK/RCLK must match selected x16 baud (307.2/614.4 kHz).
 # Netronics Tiny BASIC executes separately from RAM starting at $0000.
 #
+# Enable ROM-resident CHIP-8 games as a separate merged Intel HEX component.
+CHIP8ROMGAMES=1
 # This configuration affects ONLY the AVI variant; stock Elf2K builds intact.
 BOOTS=08000H
 WARMB=($(strip $(BOOTS))+3)

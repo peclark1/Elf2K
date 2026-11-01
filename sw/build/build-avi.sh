@@ -15,6 +15,9 @@ cp "$SW/Makefile" "$WORK/"
 cp "$SW"/boots.asm "$SW"/boots.inc "$SW"/hardware.inc "$WORK/"
 cp "$SW"/config.AVIElf2 "$SW"/help.AVIElf2 "$SW"/giantboard.hex "$WORK/"
 cp "$SW"/avi-cassette.asm "$SW"/avi-chip8.asm "$WORK/"
+# Checked 27-game ROM payload: separate sparse HEX component, never overlays BOOTS.
+python3 "$SW/build/build-chip8-rom-library.py" \
+  "$WORK/chip8-games.asm" "$WORK/chip8-rom-layout.json"
 
 # Omitting SEDIT/Forth changes code placement. The original one-page BZ
 # in SHOW CPU can then cross a page. Fix only the disposable AVI copy:
